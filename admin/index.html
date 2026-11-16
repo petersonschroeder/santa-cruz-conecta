@@ -42,12 +42,24 @@
 <div class="card stat stat-submissions"><strong id="statPending">—</strong><span>Solicitações aguardando análise</span></div>
 <div class="card stat stat-accent"><strong id="statClicks30">—</strong><span>Cliques em links · 30 dias</span></div>
 <div class="card stat"><strong id="statNeedsReview">—</strong><span>Links ainda não conferidos</span></div>
+<div class="card stat stat-accent"><strong id="statApk30">—</strong><span>Inícios de download APK · 30 dias</span></div>
 </div>
-<div class="overview-nav"><a href="#catalogoAdmin">Gerenciar locais</a><a href="#auditoria">Qualidade dos links</a><a href="#solicitacoes">Solicitações</a><a href="/" target="_blank" rel="noopener noreferrer">Ver portal ↗</a></div>
+<div class="overview-nav"><a href="#appAdmin">Aplicativo Android</a><a href="#catalogoAdmin">Gerenciar locais</a><a href="#auditoria">Qualidade dos links</a><a href="#solicitacoes">Solicitações</a><a href="/" target="_blank" rel="noopener noreferrer">Ver portal ↗</a></div>
 <div class="insights-grid">
   <section class="card insight-card" aria-labelledby="categoriesOverview"><div class="insight-head"><h2 id="categoriesOverview">Catálogo por categoria</h2><span class="muted">Distribuição de locais cadastrados</span></div><div id="categoryBars" class="bar-list"></div></section>
   <section class="card insight-card" aria-labelledby="mostVisited"><div class="insight-head"><h2 id="mostVisited">Sites mais acessados</h2><span class="muted">Cliques nos últimos 30 dias · não são visitas únicas</span></div><div id="topStores" class="bar-list"></div><p class="hint">Contagem iniciada nesta versão. Navegação direta ao site da loja não é contabilizada.</p></section>
 </div>
+<section class="card app-admin-card" id="appAdmin" aria-labelledby="appTitle">
+  <div class="app-admin-heading"><div><span class="eyebrow">APLICATIVO ANDROID</span><h2 id="appTitle">Downloads do aplicativo</h2><p class="muted">Acompanhe pedidos de download do APK. Estes números não confirmam downloads concluídos nem instalações.</p></div><button id="reloadDownloads" class="ghost" type="button">Atualizar contadores</button></div>
+  <div class="app-admin-grid">
+    <div class="app-kpi"><span>Total desde o lançamento</span><strong id="appDownloadsTotal">—</strong></div>
+    <div class="app-kpi"><span>Últimos 7 dias</span><strong id="appDownloads7">—</strong></div>
+    <div class="app-kpi"><span>Últimos 30 dias</span><strong id="appDownloads30">—</strong></div>
+    <div class="app-kpi"><span>Último pedido de download</span><strong id="appDownloadsLast" class="app-date">—</strong></div>
+  </div>
+  <div class="app-actions"><a href="/baixar-app.html" class="primary" target="_blank" rel="noopener noreferrer">Abrir página de download ↗</a><a href="https://github.com/petersonschroeder/santa-cruz-conecta/releases/tag/android-v1.0.0-beta.1" target="_blank" rel="noopener noreferrer">Ver versão beta no GitHub ↗</a></div>
+  <div id="appDownloadMessage" class="notice" role="status" aria-live="polite"></div>
+</section>
 <section class="card directory-admin-card" id="catalogoAdmin">
 <div><h2>Diretório de locais</h2><p class="muted">As mudanças salvas aparecem no site público, sem necessidade de novo deploy.</p></div>
 <div class="toolbar"><input id="search" type="search" placeholder="Pesquisar estabelecimento, loja ou endereço..." aria-label="Pesquisar estabelecimento"><select id="statusFilter" aria-label="Filtrar publicação"><option value="all">Todos os status</option><option value="published">Publicados</option><option value="draft">Rascunhos</option></select><select id="categoryFilter" aria-label="Filtrar categoria"><option value="all">Todas as categorias</option></select><select id="reviewFilter" aria-label="Filtrar links"><option value="all">Qualquer revisão</option><option value="pending">Não revisados</option><option value="needs_review">Precisam de correção</option><option value="reviewed">Conferidos</option></select><button id="reload" class="ghost" type="button">Atualizar</button></div>
