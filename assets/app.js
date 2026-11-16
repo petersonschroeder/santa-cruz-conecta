@@ -8,6 +8,7 @@
   const locale = 'pt-BR';
   const state = { category: 'todos', search: '', sort: 'recommended', favoritesOnly: false, limit: 9 };
   const FAVORITES_KEY = 'santacruzconecta:favoritos:v1';
+  const CONTACT_WHATSAPP = '5551999953049';
   const iconPaths = {
     'shopping-cart':'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.8 13.5h12L22 6H6"/>',
     plus:'<path d="M12 4v16M4 12h16"/>',
@@ -68,6 +69,7 @@
     $('emptyState').hidden=Boolean(filtered.length);
     $('loadMoreWrap').hidden=filtered.length<=state.limit;
     $('totalCount').textContent=`${places.length} lugares para descobrir`;
+    if ($('heroPlaceCount')) $('heroPlaceCount').textContent=String(places.length);
     renderChips();updateBadges();
   }
   let toastTimer;
@@ -104,5 +106,69 @@
   const menu=$('mobileNav'),menuBtn=$('menuBtn');
   menuBtn.addEventListener('click',()=>{const open=menu.hasAttribute('hidden');if(open)menu.removeAttribute('hidden');else menu.setAttribute('hidden','');menuBtn.setAttribute('aria-expanded',String(open));menuBtn.setAttribute('aria-label',open?'Fechar menu':'Abrir menu')});
   menu.addEventListener('click',e=>{if(e.target.closest('a')){menu.setAttribute('hidden','');menuBtn.setAttribute('aria-expanded','false')}});
+  // Solicitação editorial: prepara uma mensagem em vez de permitir INSERT anônimo.
+  // Nada é enviado nem publicado sem o visitante confirmar no WhatsApp.
+  const businessDialog = $('businessDialog');
+  const businessForm = $('businessForm');
+  if (businessDialog && businessForm) {
+    const categorySelect = $('businessCategory');
+    Object.entries(categories).forEach(([id, category]) => {
+      const option=document.createElement('option');
+      option.value=id;
+      option.textContent=category.label;
+      categorySelect.appendChild(option);
+    });
+    let focusBeforeDialog=null;
+    const closeBusinessDialog=()=>{
+      if(businessDialog.open) businessDialog.close();
+      if(focusBeforeDialog && typeof focusBeforeDialog.focus === 'function') focusBeforeDialog.focus();
+    };
+    document.querySelectorAll('[data-open-submission]').forEach(button=>button.addEventListener('click',()=>{
+      focusBeforeDialog=document.activeElement;
+      menu.setAttribute('hidden','');
+      menuBtn.setAttribute('aria-expanded','false');
+      if(!businessDialog.open) businessDialog.showModal();
+      businessForm.elements.namedItem('name').focus();
+    }));
+    $('closeBusinessDialog').addEventListener('click',closeBusinessDialog);
+    businessDialog.addEventListener('click',event=>{if(event.target===businessDialog)closeBusinessDialog()});
+    businessDialog.addEventListener('close',()=>{
+      if(focusBeforeDialog && typeof focusBeforeDialog.focus === 'function') focusBeforeDialog.focus();
+    });
+    businessForm.addEventListener('submit',event=>{
+      event.preventDefault();
+      if(!businessForm.reportValidity())return;
+      const data=new FormData(businessForm);
+      const v=(name,max)=>String(data.get(name)||'').trim().slice(0,max);
+      const name=v('name',120);
+      const category=categories[v('category',80)]?.label || 'Outro';
+      const address=v('address',180);
+      const contact=v('contact',90);
+      if(!name||!address||!contact||data.get('permission')!=='on')return;
+      const lines=[
+        'Olá! Gostaria de indicar um comércio para o Santa Cruz Conecta.',
+        '',
+        '🏪 Comércio: '+name,
+        '📌 Categoria: '+category,
+        '📍 Bairro/endereço: '+address,
+        '👤 Responsável pelo contato: '+contact
+      ];
+      if(v('site',220)) lines.push('🔗 Site/Instagram: '+v('site',220));
+      if(v('phone',30)) lines.push('📞 Telefone: '+v('phone',30));
+      if(v('details',450)) lines.push('📝 Sobre o negócio: '+v('details',450));
+      lines.push('','Tenho autorização para indicar estes dados. Entendo que a equipe avaliará o cadastro antes de publicá-lo.');
+      const url='https://wa.me/'+CONTACT_WHATSAPP+'?text='+encodeURIComponent(lines.join('\\n'));
+      const link=document.createElement('a');
+      link.href=url;
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      businessDialog.close();
+      businessForm.reset();
+      toast('Mensagem preparada. Confirme o envio no WhatsApp.');
+    });
+  }
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu.hasAttribute('hidden')){menu.setAttribute('hidden','');menuBtn.setAttribute('aria-expanded','false')}if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!/input|textarea/i.test(document.activeElement?.tagName||'')){e.preventDefault();$('directoryInput').focus();$('catalogo').scrollIntoView({behavior:'smooth',block:'start'})}});
 })();
