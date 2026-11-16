@@ -3,6 +3,7 @@
 /.github/
 /tests/
 /scripts/
+/reports/
 .gitignore
 .assetsignore
 .env
