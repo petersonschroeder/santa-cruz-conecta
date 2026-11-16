@@ -2,6 +2,7 @@
 /.git/
 /.github/
 /tests/
+/scripts/
 .gitignore
 .assetsignore
 .env
