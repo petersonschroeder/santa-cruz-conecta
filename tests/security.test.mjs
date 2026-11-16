@@ -70,3 +70,29 @@ test('políticas de leitura e escrita seguem privilégios mínimos',()=>{
   assert.match(harden,/places_safe_values_check/);
   assert.match(harden,/bucket_id='brand-logos'/);
 });
+
+test('botões de atendimento e cadastro usam telefone autorizado e avaliação editorial',()=>{
+  const html=read('index.html');
+  const js=read('assets/app.js');
+  assert.match(html,/https:\/\/wa\.me\/5551999953049/);
+  assert.match(html,/id="businessDialog"/);
+  assert.match(html,/id="businessForm"/);
+  assert.match(html,/data-open-submission/);
+  assert.match(html,/name="permission" required/);
+  assert.match(js,/const CONTACT_WHATSAPP = '5551999953049'/);
+  assert.match(js,/encodeURIComponent\(lines\.join\(/);
+  assert.match(js,/businessForm\.reportValidity\(\)/);
+  assert.doesNotMatch(js,/request\('\/rest\/v1\/places[^\n]*method:\s*'POST'/);
+});
+
+test('interface preserva responsividade e o formulário não usa script inline',()=>{
+  const css=read('assets/styles.css');
+  const html=read('index.html');
+  assert.match(css,/@media\(max-width:540px\)/);
+  assert.match(css,/\.community-card\{/);
+  assert.match(css,/\.business-dialog\{/);
+  assert.match(css,/\.contact-whatsapp\{/);
+  assert.doesNotMatch(html,/on(click|submit|load)=/i);
+  assert.ok(!html.includes('javascript:'),'não usar javascript: em links');
+  assert.ok(!html.includes('<script type="module">'),'sem script inline novo fora do JSON-LD');
+});
