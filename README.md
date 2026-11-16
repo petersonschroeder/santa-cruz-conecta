@@ -130,3 +130,24 @@ A seção **Cadastre seu comércio** permite enviar o pedido diretamente pelo fo
 
 **Ativação da fila:** o banco já contém a migração `business_submission_review_queue`; código-fonte em `supabase/migrations/20261116030000_business_submission_review_queue.sql`. O painel exige um usuário Auth autorizado conforme [SECURITY.md](SECURITY.md).
 
+
+
+## Dashboard de comércio e links — 16/11/2026
+
+O painel em `/admin/` agora inclui **visão geral comercial**, total de estabelecimentos, publicados, rascunhos, solicitações, cliques registrados nos últimos 30 dias, distribuição por categoria e ranking dos sites mais acessados.
+
+**Curadoria de lojas:** o catálogo foi ampliado com estabelecimentos pesquisados em Santa Cruz do Sul. São `52` locais no momento desta curadoria, incluindo `15` cadastrados em Comércio. A lista das 15 entradas adicionadas, acompanhada da URL fonte, pode ser restaurada pelo arquivo idempotente `supabase/seeds/20261116_comercio_curado.sql`; URLs de fontes ficam no campo `places.source_url`.
+
+**Revisão manual:** cada `places` agora possui `link_review_status` (`pending`, `reviewed`, `needs_review`) e `last_link_reviewed_at`. O painel oferece filtros por categoria, situação de publicação e situação do link, além do botão para abrir a URL, editar a fonte e marcar a conferência. `reviewed` significa que a fonte/site foi conferido editorialmente no momento da curadoria, **não** garantia permanente de disponibilidade.
+
+**Cliques externos:** somente o clique em links de estabelecimento a partir do portal é registrado. A tabela `place_clicks` armazena `place_id` e a data/hora (sem IP, e-mail ou identificador do visitante). O frontend reduz cliques repetidos no mesmo lugar por dez minutos via `sessionStorage`; o banco limita 30 eventos/minuto e 600/dia por estabelecimento como proteção contra consumo abusivo. O relatório `place_click_summary` é legível apenas por administradores. Os números são cliques técnicos, **não visitas únicas ou conversões/vendas**, e podem estar incompletos ou conter interações automatizadas.
+
+**Auditoria recorrente:** o workflow `.github/workflows/audit-links.yml` roda semanalmente às terças e pode ser iniciado manualmente pelo GitHub Actions. Ele acessa com `HEAD` e, se necessário, `GET` os links do catálogo público, sem tentar login, rastrear páginas internas, alterar o Supabase ou marcar automaticamente empresas como fechadas. Os resultados aparecem no **Resumo da execução** do GitHub Actions. HTTP 403, 429, timeout e bloqueios anti-bot exigem conferência manual; só HTTP 404/410 é classificado como possível link quebrado.
+
+Documentos relevantes:
+- `supabase/migrations/20261116040000_commercial_link_review_and_click_metrics.sql`
+- `supabase/migrations/20261116041000_restrict_click_summary_to_admins.sql`
+- `supabase/migrations/20261116042000_click_metrics_public_rate_limits.sql`
+- `supabase/seeds/20261116_comercio_curado.sql`
+- `scripts/audit-links.mjs` (excluído da publicação pública pela `.assetsignore`)
+
