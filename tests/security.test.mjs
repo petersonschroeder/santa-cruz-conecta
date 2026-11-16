@@ -222,3 +222,48 @@ test('contadores de APK separam requests do site de downloads no GitHub',()=>{
   assert.match(read('index.html'),/href="\/baixar-app.html"/);
   assert.match(read('.assetsignore'),/\/android\//);
 });
+
+
+test('PWA instalável sem APK tem manifesto, ícones e fallback offline restrito',()=>{
+  const manifest=JSON.parse(read('manifest.webmanifest'));
+  const sw=read('sw.js');
+  const index=read('index.html');
+  const download=read('baixar-app.html');
+  const install=read('assets/pwa-install.js');
+  const headers=read('_headers');
+  assert.equal(manifest.display,'standalone');
+  assert.equal(manifest.scope,'/');
+  assert.equal(manifest.start_url,'/?origem=app');
+  assert.ok(manifest.icons.some(i=>i.sizes==='192x192'&&i.type==='image/png'));
+  assert.ok(manifest.icons.some(i=>i.sizes==='512x512'&&i.type==='image/png'));
+  assert.match(index,/href="\/manifest\.webmanifest"/);
+  assert.match(download,/href="\/manifest\.webmanifest"/);
+  assert.match(download,/id="installPwa"/);
+  assert.match(download,/APK beta \(somente para testes\)/);
+  assert.match(install,/beforeinstallprompt/);
+  assert.match(install,/appinstalled/);
+  assert.match(install,/navigator\.serviceWorker\.register/);
+  assert.match(headers,/worker-src 'self'/);
+  assert.match(sw,/fetch\(request\)\.catch\(\(\)=>caches\.match\(OFFLINE\)\)/);
+  assert.doesNotMatch(sw,/admin_users|business_submissions|SC_PLACES|access_token/);
+  assert.doesNotMatch(sw,/caches\.put\(/);
+  assert.match(read('offline.html'),/Sem conexão/);
+  assert.match(read('privacidade.html'),/Instalação pelo navegador/);
+});
+test('indicador PWA preserva RLS e separação do APK',()=>{
+  const schema=read('supabase/migrations/20261116053000_pwa_browser_install_metrics.sql');
+  const admin=read('admin/admin.js');
+  const panel=read('admin/index.html');
+  const js=read('assets/pwa-install.js');
+  assert.match(schema,/alter table public\.pwa_install_events enable row level security/);
+  assert.match(schema,/grant insert\(platform\) on public\.pwa_install_events to anon/);
+  assert.match(schema,/with \(security_invoker = true\)/);
+  assert.match(schema,/from public\.admin_users a/);
+  assert.match(schema,/limit_pwa_installs/);
+  assert.match(panel,/id="pwaInstallsTotal"/);
+  assert.match(panel,/id="pwaInstallsAndroid"/);
+  assert.match(admin,/pwa_install_summary/);
+  assert.match(js,/rest\/v1\/pwa_install_events/);
+  assert.match(js,/keepalive:true/);
+  assert.match(read('.assetsignore'),/\/android\//);
+});
