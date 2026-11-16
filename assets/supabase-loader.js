@@ -1,9 +1,11 @@
-/* Prioriza catálogo publicado no Supabase; mantém curadoria local como fallback. */
+/* Publicação com fonte única no banco: nunca revelar dados despublicados via cache local. */
 window.SC_DATA_READY = (async () => {
   const config = window.SC_SUPABASE || {};
   const url = String(config.url || '').replace(/\/+$/, '');
   const key = String(config.publishableKey || '');
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url) || !key) return;
+  window.SC_PLACES = []; // fail closed: nada de restauração de registros removidos
+  window.SC_DATA_ERROR = false;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 6500);
@@ -17,7 +19,7 @@ window.SC_DATA_READY = (async () => {
     } finally { clearTimeout(timeout); }
     if (!response.ok) throw new Error(`Supabase REST: ${response.status}`);
     const rows = await response.json();
-    if (!Array.isArray(rows) || rows.length === 0) return;
+    if (!Array.isArray(rows)) throw new Error('Resposta inválida do catálogo');
     const validCategories = new Set(Object.keys(window.SC_CATEGORIES || {}));
     const places = rows.filter(p => p && typeof p.id === 'string' && validCategories.has(p.category)
         && /^https:\/\//.test(p.website_url || ''))
@@ -31,6 +33,8 @@ window.SC_DATA_READY = (async () => {
     window.SC_PLACES = places;
     window.SC_SUPABASE_LOADED = true;
   } catch (error) {
-    console.warn('Santa Cruz Conecta: mantendo catálogo local', error);
+    window.SC_PLACES = [];
+    window.SC_DATA_ERROR = true;
+    console.warn('Santa Cruz Conecta: falha ao carregar catálogo; não mostrando dados antigos', error);
   }
 })();
