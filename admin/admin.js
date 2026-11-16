@@ -61,7 +61,7 @@ function showDashboard() { $('authView').hidden=true; $('panelView').hidden=fals
 function showLogin() { $('authView').hidden=false; $('panelView').hidden=true; $('logout').hidden=true; $('account').textContent=''; }
 async function activate() {
   if (!(await isAdmin())) { saveSession(null); showLogin(); message('loginMessage','Esta conta ainda não tem permissão de administrador.',true); return; }
-  showDashboard(); await Promise.all([loadPlaces(), loadSubmissions(), loadClicks()]);
+  showDashboard(); await Promise.all([loadPlaces(), loadSubmissions(), loadClicks(), loadAppDownloads()]);
 }
 async function logout() {
   try { if (session) await request('/auth/v1/logout',{method:'POST',allowRefresh:false}); } catch {}
@@ -164,6 +164,25 @@ async function reopenSubmission(id){
   }catch(err){message('requestsMessage','Erro ao reabrir: '+err.message,true);}
 }
 
+
+async function loadAppDownloads(){
+  try {
+    const rows=await request('/rest/v1/android_download_summary?select=initiated_total,initiated_7d,initiated_30d,last_initiated_at');
+    const d=Array.isArray(rows)&&rows.length?rows[0]:null;
+    if(!d)throw Error('Resumo de downloads ainda indisponível.');
+    const number=value=>Number(value||0).toLocaleString('pt-BR');
+    $('appDownloadsTotal').textContent=number(d.initiated_total);
+    $('appDownloads7').textContent=number(d.initiated_7d);
+    $('appDownloads30').textContent=number(d.initiated_30d);
+    $('statApk30').textContent=number(d.initiated_30d);
+    $('appDownloadsLast').textContent=d.last_initiated_at?
+      new Date(d.last_initiated_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'Nenhum ainda';
+    message('appDownloadMessage','');
+  }catch(error){
+    message('appDownloadMessage','Não foi possível carregar os downloads: '+error.message,true);
+    for(const id of ['appDownloadsTotal','appDownloads7','appDownloads30','statApk30','appDownloadsLast']) $(id).textContent='—';
+  }
+}
 
 async function loadClicks(){
   try {
@@ -413,6 +432,7 @@ function init() {
   });
   $('reload').addEventListener('click',loadPlaces); $('newPlace').addEventListener('click',()=>openForm());
   $('reloadRequests').addEventListener('click',loadSubmissions);
+  $('reloadDownloads').addEventListener('click',loadAppDownloads);
   $('requestSearch').addEventListener('input',renderSubmissions);
   $('requestStatusFilter').addEventListener('change',renderSubmissions);
   $('requestRows').addEventListener('click',e=>{
