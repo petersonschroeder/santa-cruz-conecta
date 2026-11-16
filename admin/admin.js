@@ -8,7 +8,7 @@ const $ = id => document.getElementById(id);
 const SESSION_KEY = 'santacruzconecta:admin:v1';
 const cats = window.SC_CATEGORIES || {};
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let session = null, places = [], submissions = [], currentId = null, currentSubmissionId = null, busy = false;
+let session = null, places = [], submissions = [], clickStats = [], clicksLoaded = false, currentId = null, currentSubmissionId = null, busy = false;
 const loadStored = () => { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } };
 const saveSession = value => { session = value; if (value) sessionStorage.setItem(SESSION_KEY, JSON.stringify(value)); else sessionStorage.removeItem(SESSION_KEY); };
 const message = (id,text,error=false) => { const el=$(id); el.textContent=text; el.classList.toggle('error',!!error); };
@@ -61,7 +61,7 @@ function showDashboard() { $('authView').hidden=true; $('panelView').hidden=fals
 function showLogin() { $('authView').hidden=false; $('panelView').hidden=true; $('logout').hidden=true; $('account').textContent=''; }
 async function activate() {
   if (!(await isAdmin())) { saveSession(null); showLogin(); message('loginMessage','Esta conta ainda não tem permissão de administrador.',true); return; }
-  showDashboard(); await Promise.all([loadPlaces(), loadSubmissions()]);
+  showDashboard(); await Promise.all([loadPlaces(), loadSubmissions(), loadClicks()]);
 }
 async function logout() {
   try { if (session) await request('/auth/v1/logout',{method:'POST',allowRefresh:false}); } catch {}
@@ -71,7 +71,7 @@ async function loadPlaces() {
   try {
     const rows=await request('/rest/v1/places?select=*&order=name.asc&limit=2000');
     places=Array.isArray(rows)?rows:[];
-    updateStats(); render();
+    updateStats(); render(); renderOverview(); renderQuality();
     message('panelMessage','');
   } catch(e){message('panelMessage','Não foi possível carregar os dados: '+e.message,true);}
 }
@@ -164,25 +164,129 @@ async function reopenSubmission(id){
   }catch(err){message('requestsMessage','Erro ao reabrir: '+err.message,true);}
 }
 
+
+async function loadClicks(){
+  try {
+    const rows=await request('/rest/v1/place_click_summary?select=place_id,place_name,category,clicks_7d,clicks_30d,clicks_total,last_clicked_at&limit=1500');
+    clickStats=Array.isArray(rows)?rows:[];
+    clicksLoaded=true;
+    renderOverview(); render(); updateStats();
+  }catch(err){
+    clicksLoaded=false;
+    $('topStores').textContent='Métricas indisponíveis: '+err.message;
+    $('statClicks30').textContent='—';
+  }
+}
+function clicksFor(id){
+  return Number(clickStats.find(v=>v.place_id===id)?.clicks_30d||0);
+}
+function renderOverview(){
+  const totals=Object.entries(cats).map(([id,category])=>({
+    id,label:category.label,count:places.filter(p=>p.category===id).length
+  })).filter(x=>x.count>0).sort((a,b)=>b.count-a.count);
+  const max=Math.max(1,...totals.map(x=>x.count));
+  $('categoryBars').innerHTML=totals.map(x=>
+    '<div class="bar-item"><div class="bar-label"><span>'+esc(x.label)+'</span><strong>'+x.count+'</strong></div>'+
+    '<div class="bar-track"><div class="bar-fill" style="width:'+Math.round(x.count/max*100)+'%"></div></div></div>'
+  ).join('')||'<p class="muted">Nenhuma categoria cadastrada.</p>';
+  if(!clicksLoaded)return;
+  const top=clickStats.filter(x=>Number(x.clicks_30d)>0)
+    .sort((a,b)=>Number(b.clicks_30d)-Number(a.clicks_30d)).slice(0,8);
+  const maxClicks=Math.max(1,...top.map(x=>Number(x.clicks_30d)));
+  $('topStores').innerHTML=top.length?top.map(x=>
+    '<div class="bar-item"><div class="bar-label"><span>'+esc(x.place_name)+'</span><strong>'+
+    Number(x.clicks_30d).toLocaleString('pt-BR')+'</strong></div><div class="bar-track"><div class="bar-fill bar-fill-gold" style="width:'+
+    Math.round(Number(x.clicks_30d)/maxClicks*100)+'%"></div></div></div>'
+  ).join(''):'<p class="muted">Ainda não há cliques registrados. Esta medição começa a partir da atualização do portal.</p>';
+}
+function qualityScore(p){
+  let score=0;
+  if(p.link_review_status==='needs_review')score+=5;
+  if(p.link_review_status!=='reviewed')score+=2;
+  if(!p.address)score+=2;
+  if(p.link_type!=='site')score+=1;
+  if(!p.source_url)score+=1;
+  return score;
+}
+function renderQuality(){
+  const counts={
+    pending:places.filter(p=>p.link_review_status!=='reviewed').length,
+    missing:places.filter(p=>!p.address).length,
+    guides:places.filter(p=>p.link_type!=='site').length,
+    reviewed:places.filter(p=>p.link_review_status==='reviewed').length
+  };
+  $('statNeedsReview').textContent=counts.pending;
+  $('qualityStats').innerHTML=[
+    ['A conferir',counts.pending],['Endereços ausentes',counts.missing],
+    ['Guias/redes',counts.guides],['Links conferidos',counts.reviewed]
+  ].map(([name,n])=>'<div class="quality-kpi"><strong>'+n+'</strong><span>'+esc(name)+'</span></div>').join('');
+  const priority=[...places].filter(p=>qualityScore(p)>0)
+    .sort((a,b)=>qualityScore(b)-qualityScore(a)||a.name.localeCompare(b.name,'pt-BR')).slice(0,10);
+  $('auditItems').innerHTML=priority.length?priority.map(p=>{
+    const issues=[
+      p.link_review_status==='needs_review'?'Solicita revisão':p.link_review_status!=='reviewed'?'Não conferido':'',
+      !p.address?'Sem endereço':'',
+      p.link_type!=='site'?'Página de guia/rede':'',
+      !p.source_url?'Sem fonte':''
+    ].filter(Boolean).join(' · ');
+    return '<div class="audit-item"><div><strong>'+esc(p.name)+'</strong><small>'+esc(issues)+'</small></div>'+
+      '<div class="audit-actions"><a href="'+esc(validHttps(p.website_url)?p.website_url:'#')+'" target="_blank" rel="noopener noreferrer">Abrir site ↗</a>'+
+      '<button type="button" data-edit="'+esc(p.id)+'">Editar</button><button type="button" data-mark-review="'+esc(p.id)+'">Conferi o link ✓</button></div></div>';
+  }).join(''):'<p class="muted">Todos os registros estão conferidos e completos segundo os dados atuais.</p>';
+}
+async function setLinkReview(id,status){
+  const place=places.find(x=>x.id===id);if(!place)return;
+  if(status==='reviewed'&&!confirm('Você abriu e conferiu manualmente o endereço '+place.website_url+' e confirmou que ele corresponde ao estabelecimento?'))return;
+  try{
+    await request('/rest/v1/places?id=eq.'+encodeURIComponent(id),{
+      method:'PATCH',
+      payload:{
+        link_review_status:status,
+        last_link_reviewed_at:status==='reviewed'?new Date().toISOString():null
+      },
+      headers:{Prefer:'return=minimal'}
+    });
+    await loadPlaces();
+    message('panelMessage',status==='reviewed'?'Link marcado como conferido.':'Link sinalizado para revisão.');
+  }catch(e){message('panelMessage','Erro ao alterar a revisão: '+e.message,true);}
+}
+
 function updateStats(){
   $('statTotal').textContent=places.length;
   $('statLive').textContent=places.filter(p=>p.is_published).length;
   $('statDraft').textContent=places.filter(p=>!p.is_published).length;
   $('statCategories').textContent=new Set(places.map(p=>p.category)).size;
+  $('statClicks30').textContent=clicksLoaded?clickStats.reduce((sum,p)=>sum+Number(p.clicks_30d||0),0).toLocaleString('pt-BR'):'—';
 }
 function render() {
   const term=$('search').value.toLocaleLowerCase('pt-BR').trim();
   const filter=$('statusFilter').value;
-  const filtered=places.filter(p=>(filter==='all'||(filter==='published')===!!p.is_published) &&
-    [p.name,p.category,p.address,p.subtitle].join(' ').toLocaleLowerCase('pt-BR').includes(term));
+  const category=$('categoryFilter').value;
+  const review=$('reviewFilter').value;
+  const filtered=places.filter(p=>
+    (filter==='all'||(filter==='published')===!!p.is_published) &&
+    (category==='all'||p.category===category) &&
+    (review==='all'||(p.link_review_status||'pending')===review) &&
+    [p.name,p.category,p.address,p.subtitle,p.website_url].join(' ').toLocaleLowerCase('pt-BR').includes(term)
+  );
   $('empty').hidden=filtered.length>0;
-  $('rows').innerHTML=filtered.map(p=>`<tr>
-    <td><div class="item"><img src="${esc(logoFor(p))}" data-fallback="/assets/brands/${encodeURIComponent(p.id)}.svg" alt="" loading="lazy"><span><strong>${esc(p.name)}</strong><span class="muted">${esc(p.id)}</span></span></div></td>
-    <td>${esc(cats[p.category]?.label||p.category)}</td>
-    <td><span class="status ${p.is_published?'live':''}">${p.is_published?'Publicado':'Rascunho'}</span></td>
-    <td>${esc(p.address||'—')}</td>
-    <td><div class="actions"><button type="button" data-edit="${esc(p.id)}">Editar</button><button type="button" data-toggle="${esc(p.id)}">${p.is_published?'Ocultar':'Publicar'}</button><button type="button" class="red" data-remove="${esc(p.id)}">Excluir</button></div></td>
-  </tr>`).join('');
+  $('rows').innerHTML=filtered.map(p=>{
+    const reviewStatus=p.link_review_status||'pending';
+    const reviewLabel={pending:'Pendente',reviewed:'Conferido',needs_review:'Revisar'}[reviewStatus]||reviewStatus;
+    const url=validHttps(p.website_url)?p.website_url:'#';
+    return '<tr>'+
+      '<td><div class="item"><img src="'+esc(logoFor(p))+'" data-fallback="/assets/brands/'+encodeURIComponent(p.id)+'.svg" alt="" loading="lazy"><span><strong>'+esc(p.name)+'</strong><span class="muted">'+esc(p.address||p.id)+'</span></span></div></td>'+
+      '<td>'+esc(cats[p.category]?.label||p.category)+'</td>'+
+      '<td><span class="status '+(p.is_published?'live':'')+'">'+(p.is_published?'Publicado':'Rascunho')+'</span></td>'+
+      '<td><a class="admin-site-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(p.link_type==='site'?'Site oficial':p.link_type==='guia'?'Guia externo':'Canal externo')+' ↗</a></td>'+
+      '<td><span class="status '+(reviewStatus==='reviewed'?'live':reviewStatus==='needs_review'?'rejected':'')+'">'+esc(reviewLabel)+'</span></td>'+
+      '<td><strong class="click-number">'+(clicksLoaded?clicksFor(p.id).toLocaleString('pt-BR'):'—')+'</strong></td>'+
+      '<td><div class="actions"><button type="button" data-edit="'+esc(p.id)+'">Editar</button>'+
+      (reviewStatus!=='reviewed'?'<button type="button" data-mark-review="'+esc(p.id)+'">Conferir</button>':'<button type="button" data-flag-review="'+esc(p.id)+'">Revisar</button>')+
+      '<button type="button" data-toggle="'+esc(p.id)+'">'+(p.is_published?'Ocultar':'Publicar')+'</button>'+
+      '<button type="button" class="red" data-remove="'+esc(p.id)+'">Excluir</button></div></td>'+
+    '</tr>';
+  }).join('');
 }
 const slug = value=>String(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,66);
 function openForm(id=null) {
@@ -191,10 +295,11 @@ function openForm(id=null) {
   const p=places.find(x=>x.id===id);
   $('placeForm').reset();
   $('placeForm').elements.is_published.checked=true;
+  $('placeForm').elements.link_review_status.value='pending';
   $('formTitle').textContent=p?'Editar '+p.name:'Novo estabelecimento';
   $('saveButton').textContent='Salvar estabelecimento';
   if (p) {
-    for (const field of ['name','category','description','subtitle','website_url','link_type','address','phone','logo_url','featured','is_published']) {
+    for (const field of ['name','category','description','subtitle','website_url','link_type','address','phone','logo_url','featured','is_published','source_url','link_review_status']) {
       const el=$('placeForm').elements.namedItem(field);
       if (el) { if(el.type==='checkbox')el.checked=!!p[field]; else el.value=p[field]??''; }
     }
@@ -220,9 +325,10 @@ async function save(e) {
   e.preventDefault(); if(busy) return;
   const form=$('placeForm');
   const v=name=>String(form.elements.namedItem(name)?.value||'').trim();
-  const name=v('name'), site=v('website_url'), logo=v('logo_url');
+  const name=v('name'), site=v('website_url'), logo=v('logo_url'), source=v('source_url'), review=v('link_review_status');
   if (!name || !validHttps(site)) {alert('Informe um nome e um site HTTPS válido.');return;}
   if (logo && !validHttps(logo)) {alert('A URL do logotipo precisa começar com HTTPS.');return;}
+  if (source && !validHttps(source)) {alert('A fonte de verificação precisa começar com HTTPS.');return;}
   let id=currentId;
   if (!id) {
     const start=slug(name)||'local';
@@ -235,7 +341,9 @@ async function save(e) {
     tags:v('tags').split(',').map(s=>s.trim()).filter(Boolean).slice(0,25),
     featured:form.elements.featured.checked,is_published:form.elements.is_published.checked,
     logo_url:logo,mark:name.split(/\s+/).slice(0,2).map(s=>s[0]).join('').toUpperCase(),
-    source_url:site,updated_at:new Date().toISOString()
+    source_url:source||site,link_review_status:review,
+    last_link_reviewed_at:review==='reviewed'?new Date().toISOString():null,
+    updated_at:new Date().toISOString()
   };
   busy=true; $('saveButton').disabled=true; $('saveButton').textContent='Salvando...';
   try {
@@ -295,6 +403,14 @@ function init() {
   });
   $('logout').addEventListener('click',logout);
   $('search').addEventListener('input',render); $('statusFilter').addEventListener('change',render);
+  $('categoryFilter').innerHTML='<option value="all">Todas as categorias</option>'+Object.entries(cats).map(([k,c])=>'<option value="'+esc(k)+'">'+esc(c.label)+'</option>').join('');
+  $('categoryFilter').addEventListener('change',render); $('reviewFilter').addEventListener('change',render);
+  $('refreshAudit').addEventListener('click',loadPlaces);
+  $('auditItems').addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.edit)openForm(b.dataset.edit);
+    else if(b.dataset.markReview)setLinkReview(b.dataset.markReview,'reviewed');
+  });
   $('reload').addEventListener('click',loadPlaces); $('newPlace').addEventListener('click',()=>openForm());
   $('reloadRequests').addEventListener('click',loadSubmissions);
   $('requestSearch').addEventListener('input',renderSubmissions);
@@ -308,6 +424,8 @@ function init() {
   $('rows').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
     if(b.dataset.edit)openForm(b.dataset.edit);
+    else if(b.dataset.markReview)setLinkReview(b.dataset.markReview,'reviewed');
+    else if(b.dataset.flagReview)setLinkReview(b.dataset.flagReview,'needs_review');
     else if(b.dataset.toggle)toggle(b.dataset.toggle);
     else if(b.dataset.remove)remove(b.dataset.remove);
   });
