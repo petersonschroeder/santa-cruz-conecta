@@ -1,5 +1,5 @@
 {
-  "name": "Santa Cruz Conecta — Guia da cidade",
+  "name": "Santa Cruz Conecta",
   "short_name": "Santa Cruz Conecta",
   "description": "Encontre lojas, farmácias, restaurantes, turismo e serviços de Santa Cruz do Sul.",
   "id": "/",
@@ -19,13 +19,29 @@
       "src": "/assets/pwa-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/assets/pwa-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "display_override": [
+    "standalone"
+  ],
+  "prefer_related_applications": false
 }
