@@ -130,3 +130,12 @@ body{background:radial-gradient(circle at 90% -10%,#e3efd8,transparent 45%),var(
 .app-kpi-featured strong{color:#dcf6aa}
 @media(max-width:1150px){.app-admin-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:720px){.app-admin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Instalações PWA pelo Chrome, sem arquivo externo. */
+.pwa-section{border-top:1px solid #d9e6d9;margin-top:23px;padding-top:23px}
+.pwa-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:16px}
+.pwa-heading h3{font-family:Inter,system-ui,sans-serif;font-size:20px;letter-spacing:-.045em;margin:7px 0 0}
+.pwa-heading .muted{font-size:11px;max-width:255px;text-align:right}
+.pwa-section .hint{margin:14px 0 0;line-height:1.65}
+@media(max-width:630px){.pwa-heading{align-items:flex-start;flex-direction:column;gap:7px}.pwa-heading .muted{text-align:left}}
