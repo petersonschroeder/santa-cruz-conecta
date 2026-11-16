@@ -34,9 +34,12 @@ jobs:
       - name: Usar Android SDK preinstalado no runner
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          sdkmanager --version
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)
+          test -n "$SDKMANAGER"
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          "$SDKMANAGER" --version
       - name: Instalar SDK Android 35
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+        run: '"$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"'
       - name: Compilar APK beta
         working-directory: android
         run: gradle --no-daemon :app:assembleDebug
