@@ -22,13 +22,14 @@ window.SC_DATA_READY = (async () => {
     const places = rows.filter(p => p && typeof p.id === 'string' && validCategories.has(p.category)
         && /^https:\/\//.test(p.website_url || ''))
       .map(p => ({
-        id: p.id, name: p.name, category: p.category, description: p.description || '',
+        id: p.id, name: p.name, category: p.category, description: p.description || '', logoUrl: p.logo_url || '',
         url: p.website_url, linkType: p.link_type || 'site', featured: !!p.featured,
         subtitle: p.subtitle || '', address: p.address || '', phone: p.phone || '',
         tags: Array.isArray(p.tags) ? p.tags : [], mark: p.mark || '',
         palette: p.palette || null, source: p.source_url || ''
       }));
-    if (places.length) window.SC_PLACES = places;
+    window.SC_PLACES = places;
+    window.SC_SUPABASE_LOADED = true;
   } catch (error) {
     console.warn('Santa Cruz Conecta: mantendo catálogo local', error);
   }
