@@ -20,8 +20,8 @@ test('CSP forte e hash válido para dados estruturados',()=>{
   const hash=createHash('sha256').update(match[1],'utf8').digest('base64');
   assert.ok(headers.includes("'sha256-"+hash+"'"),'hash CSP deve corresponder ao HTML');
   for(const rule of ["default-src 'none'","frame-ancestors 'none'","object-src 'none'","connect-src 'self' https://vlsntcyvfdvaynxxstor.supabase.co","X-Frame-Options: DENY","Strict-Transport-Security:"]) assert.ok(headers.includes(rule),rule);
-  assert.doesNotMatch(headers,/script-src[^\n]*'unsafe-inline'/);
-  assert.doesNotMatch(headers,/script-src[^\n]*'unsafe-eval'/);
+  assert.doesNotMatch(headers,/script-src[^;]*'unsafe-inline'/);
+  assert.doesNotMatch(headers,/script-src[^;]*'unsafe-eval'/);
   assert.match(headers,/\/admin\/\*[\s\S]*X-Robots-Tag: noindex/);
 });
 
