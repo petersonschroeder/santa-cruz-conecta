@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102f33">
+  <meta name="description" content="Santa Cruz Conecta: descubra mercados, farmácias, restaurantes, turismo, eventos, hotéis e serviços de Santa Cruz do Sul, RS, em um só lugar.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Santa Cruz Conecta — A sua cidade, em um só lugar">
+  <meta property="og:description" content="Um guia independente de Santa Cruz do Sul. Explore, encontre e acesse sites e serviços da cidade.">
+  <meta property="og:locale" content="pt_BR">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="stylesheet" href="assets/styles.css">
+  <title>Santa Cruz Conecta — Descubra sua cidade</title>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Santa Cruz Conecta","description":"Guia independente de locais, atrações e serviços de Santa Cruz do Sul","about":{"@type":"City","name":"Santa Cruz do Sul","address":{"@type":"PostalAddress","addressLocality":"Santa Cruz do Sul","addressRegion":"RS","addressCountry":"BR"}},"inLanguage":"pt-BR"}</script>
+  <script defer src="assets/data.js"></script>
+  <script defer src="assets/supabase-config.js"></script>
+  <script defer src="assets/supabase-loader.js"></script>
+  <script defer src="assets/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#catalogo">Pular para o catálogo</a>
+  <div class="topline"><span class="topline-dot"></span> Um portal feito para descobrir o melhor de Santa Cruz do Sul <span class="topline-right">Vale do Rio Pardo · RS</span></div>
+  <header class="site-header" id="inicio">
+    <div class="shell header-inner">
+      <a class="brand" href="#inicio" aria-label="Santa Cruz Conecta, início">
+        <img src="assets/logo.svg" width="46" height="46" alt="" aria-hidden="true">
+        <span class="brand-name">santa cruz<span>conecta<span class="brand-period">.</span></span></span>
+      </a>
+      <nav class="desktop-nav" aria-label="Navegação principal">
+        <a href="#categorias">Categorias</a><a href="#catalogo">Explorar locais</a><a href="#cidade">Nossa cidade</a><a href="#informacoes">Informações</a>
+      </nav>
+      <div class="header-actions">
+        <button type="button" class="icon-button favorites-trigger" id="favoritesTop" aria-label="Mostrar favoritos" title="Meus favoritos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6l1.2 1.2L12 21l7.6-7.6 1.2-1.2a5.4 5.4 0 0 0 0-7.6Z"/></svg><span id="favoriteCount" class="favorite-count" hidden>0</span></button>
+        <a class="header-cta" href="#catalogo">Explorar a cidade <span aria-hidden="true">↗</span></a>
+        <button class="mobile-menu-button icon-button" type="button" id="menuBtn" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileNav"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+    <nav id="mobileNav" class="mobile-nav" aria-label="Menu do celular" hidden><a href="#categorias">Categorias</a><a href="#catalogo">Explorar locais</a><a href="#cidade">Nossa cidade</a><a href="#informacoes">Informações</a></nav>
+  </header>
+
+  <main>
+    <section class="hero shell" aria-labelledby="hero-title">
+      <div class="hero-panel">
+        <div class="hero-copy">
+          <div class="eyebrow hero-eyebrow"><span class="eyebrow-star">✳</span> O GUIA DA NOSSA CIDADE <span class="eyebrow-line"></span> SANTA CRUZ DO SUL · RS</div>
+          <h1 id="hero-title">Sua cidade.<br><em>Todos os caminhos.</em><br>Um só lugar.</h1>
+          <p>Do café da manhã ao passeio do fim de semana. Encontre mercados, farmácias, restaurantes, atrações e serviços sem perder tempo procurando.</p>
+          <form class="hero-search" id="heroSearch" role="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
+            <label class="sr-only" for="heroInput">Pesquisar na cidade</label>
+            <input id="heroInput" type="search" placeholder="O que você procura em Santa Cruz?" autocomplete="off">
+            <button type="submit">Buscar <span aria-hidden="true">↗</span></button>
+          </form>
+          <div class="hero-tags"><span>Buscas populares:</span><button data-quick="farmacias">Farmácias</button><button data-quick="restaurantes">Restaurantes</button><button data-quick="turismo">Pontos turísticos</button></div>
+        </div>
+        <div class="hero-visual" role="img" aria-label="Ilustração original da Catedral São João Batista, símbolo de Santa Cruz do Sul">
+          <div class="visual-orbit orbit-one"></div><div class="visual-orbit orbit-two"></div><div class="visual-stamp">DE CORAÇÃO<br><strong>SANTA-CRUZENSE</strong><small>✳ DESDE SEMPRE ✳</small></div>
+          <img class="cathedral-art" src="assets/catedral.svg" alt="Ilustração da Catedral São João Batista">
+          <div class="visual-caption"><span class="visual-caption-icon">↗</span><span>Um lugar pra chamar<br><strong>de nosso.</strong></span></div>
+        </div>
+      </div>
+      <div class="hero-under"><span><span class="live-dot"></span> Uma cidade cheia de descobertas</span><span>Descubra seu próximo destino <span aria-hidden="true">↓</span></span></div>
+    </section>
+
+    <section class="section shell categories-section" id="categorias" aria-labelledby="cat-title">
+      <div class="section-heading"><div><span class="section-kicker">TUDO NUM SÓ LUGAR</span><h2 id="cat-title">O que você precisa <i>hoje?</i></h2><p>Escolha por categoria e encontre o caminho mais rápido.</p></div><a class="text-link" href="#catalogo">Ver todos os locais <span aria-hidden="true">↗</span></a></div>
+      <div class="categories-grid" id="categoryGrid" aria-label="Categorias de estabelecimentos"></div>
+    </section>
+
+    <section class="section featured-section" aria-labelledby="featured-title">
+      <div class="shell">
+        <div class="section-heading"><div><span class="section-kicker">VALE A DESCOBERTA</span><h2 id="featured-title">Pra começar a <i>explorar.</i></h2><p>Alguns endereços digitais que conectam você à cidade.</p></div><a class="text-link" href="#catalogo">Explorar o catálogo <span aria-hidden="true">↗</span></a></div>
+        <div class="featured-grid" id="featuredGrid"></div>
+      </div>
+    </section>
+
+    <section class="section shell directory-section" id="catalogo" aria-labelledby="directory-title">
+      <div class="section-heading"><div><span class="section-kicker">GUIA DE SANTA CRUZ</span><h2 id="directory-title">A cidade na <i>palma da mão.</i></h2><p>Links selecionados para facilitar a sua rotina.</p></div><span id="totalCount" class="counter-pill">Carregando locais...</span></div>
+      <div class="directory-toolbar">
+        <div class="directory-search"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><label for="directoryInput" class="sr-only">Pesquisar estabelecimentos</label><input id="directoryInput" type="search" placeholder="Pesquise por nome, serviço ou categoria..."><button type="button" id="clearSearch" aria-label="Limpar pesquisa" hidden>✕</button></div>
+        <label class="sort-wrap">Ordenar <select id="sortBy" aria-label="Ordenar locais"><option value="recommended">Recomendados</option><option value="name">Nome (A–Z)</option><option value="category">Categoria</option></select></label>
+      </div>
+      <div class="filter-scroll" aria-label="Filtrar por categoria"><div id="filterChips" class="filter-chips"></div></div>
+      <div class="results-line"><span id="resultsInfo" role="status" aria-live="polite"></span><button type="button" class="favorites-filter" id="favoritesFilter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l7.6-7.6 1.2-1.2a5.4 5.4 0 0 0 0-7.6Z"/></svg> Somente favoritos</button></div>
+      <div class="directory-grid" id="directoryGrid"></div>
+      <div class="empty-state" id="emptyState" hidden><span class="empty-illustration">⌕</span><h3>Nenhum resultado por aqui</h3><p>Tente outro termo ou limpe os filtros para descobrir novos lugares.</p><button id="resetFilters" class="button-dark">Limpar filtros</button></div>
+      <div class="load-more-wrap" id="loadMoreWrap"><button type="button" class="load-more" id="loadMore">Mostrar mais lugares <span aria-hidden="true">↓</span></button></div>
+    </section>
+
+    <section class="city-section" id="cidade" aria-labelledby="city-title"><div class="shell city-inner"><div class="city-text"><span class="section-kicker">NOSSA ESSÊNCIA</span><h2 id="city-title">Uma cidade com<br><i>histórias pra contar.</i></h2><p>Entre as árvores do Túnel Verde, as torres da Catedral e o movimento da Oktoberfest, Santa Cruz do Sul mistura tradição germânica, encontro e uma energia que é só daqui.</p><p>Este portal nasceu para conectar quem vive, visita, trabalha e empreende na cidade — sem deixar os bons lugares escondidos em mil abas.</p><a class="city-link" href="https://www.santacruz.rs.gov.br/servicos/servicos-para-o-turista" rel="noopener noreferrer" target="_blank">Conhecer o turismo oficial <span aria-hidden="true">↗</span></a></div><div class="city-art"><div class="city-art-header"><span>29°43′ S &nbsp; 52°26′ O</span><span>RS · BRASIL</span></div><img src="assets/tunel.svg" alt="Ilustração original de árvores formando o Túnel Verde"><div class="city-art-foot"><strong>PELAS RUAS DA SANTINHA</strong><span>Tradição + movimento + futuro</span></div></div></div></section>
+
+    <section class="section shell info-section" id="informacoes" aria-labelledby="info-title"><div class="section-heading"><div><span class="section-kicker">BOM SABER</span><h2 id="info-title">Mais que um <i>diretório.</i></h2><p>Informações úteis para navegar pela cidade.</p></div></div><div class="info-grid"><a href="https://santacruzmaisturistica.com.br/" target="_blank" rel="noopener noreferrer" class="info-card info-green"><span class="info-icon">✳</span><span class="info-copy"><strong>Visite Santa Cruz</strong><span>Roteiros, turismo e experiências no portal oficial</span></span><span class="info-arrow">↗</span></a><a href="https://santacruz.passagensweb.com.br/Principal" target="_blank" rel="noopener noreferrer" class="info-card info-blue"><span class="info-icon">↗</span><span class="info-copy"><strong>Vai viajar?</strong><span>Consulte passagens na rodoviária da cidade</span></span><span class="info-arrow">↗</span></a><a href="https://www.santacruz.rs.gov.br/" target="_blank" rel="noopener noreferrer" class="info-card info-peach"><span class="info-icon">⌂</span><span class="info-copy"><strong>Serviços públicos</strong><span>Acesse informações oficiais da Prefeitura</span></span><span class="info-arrow">↗</span></a></div></section>
+  </main>
+  <footer class="footer"><div class="shell"><div class="footer-top"><div><a class="brand footer-brand" href="#inicio"><img src="assets/logo.svg" width="45" height="45" alt=""><span class="brand-name">santa cruz<span>conecta<span class="brand-period">.</span></span></span></a><p>Conectando pessoas, lugares e histórias de Santa Cruz do Sul, RS.</p></div><div class="footer-links"><a href="#categorias">Categorias</a><a href="#catalogo">Explorar</a><a href="#cidade">A cidade</a><a href="https://www.santacruz.rs.gov.br/servicos/servicos-para-o-turista" target="_blank" rel="noopener noreferrer">Turismo oficial ↗</a></div></div><div class="footer-bottom"><span>© <span id="year">2026</span> Santa Cruz Conecta · Projeto independente, não afiliado à Prefeitura.</span><span>Links e informações sujeitos a alterações · Curadoria inicial: nov/2026.</span></div></div></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

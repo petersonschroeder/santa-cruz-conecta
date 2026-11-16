@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-label="Santa Cruz Conecta">
+  <rect x="2" y="2" width="76" height="76" rx="22" fill="#c8f378"/>
+  <path d="M22 54V35l10-7v-9l7-11 7 11v9l11 7v19" stroke="#163d38" stroke-width="4.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M35 54V40a5 5 0 0 1 10 0v14" stroke="#163d38" stroke-width="4.7" fill="none" stroke-linecap="round"/>
+  <path d="M13 57h54" stroke="#163d38" stroke-width="4.7" stroke-linecap="round"/>
+  <circle cx="39" cy="27" r="2.7" fill="#163d38"/>
+  <path d="M63 15v11m-5.5-5.5h11" stroke="#163d38" stroke-width="3.2" stroke-linecap="round"/>
+</svg>

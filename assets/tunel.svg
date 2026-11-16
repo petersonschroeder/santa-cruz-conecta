@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 490" fill="none">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="490" gradientUnits="userSpaceOnUse"><stop stop-color="#F3F4E8"/><stop offset="1" stop-color="#BDE4B5"/></linearGradient><linearGradient id="road" x1="380" y1="254" x2="390" y2="510" gradientUnits="userSpaceOnUse"><stop stop-color="#97B4A0"/><stop offset="1" stop-color="#466961"/></linearGradient></defs>
+<rect width="780" height="490" fill="url(#sky)"/>
+<path d="m315 490 59-210 26 0 65 210" fill="url(#road)"/><path d="m375 490 13-200 9 200" fill="#E9F0DB" opacity=".65"/>
+<path d="M0 490V311l83-77 72 77v179H0ZM610 490V293l79-100 91 104v193H610Z" fill="#E8E5D4" stroke="#496B58" stroke-width="5"/>
+<path d="M13 490V339h126v151M636 490V319h124v171" stroke="#719785" stroke-width="4"/>
+<g stroke="#567A66" stroke-width="3" fill="#A6C6A3"><path d="M55 366h38v62H55zM662 346h41v58h-41z"/><path d="M68 366v62m-13-33h38M682 346v58m-20-29h41"/></g>
+<g stroke="#527659" stroke-width="18" stroke-linecap="round"><path d="M114 492V212L55 143m58 124 67-103m-67 51 63-84M687 492V205l56-76m-55 92-77-88M253 470V165L190 89m63 124 65-101m219 355V159l51-83m-51 119-74-105"/></g>
+<g fill="#4C8B67"><circle cx="98" cy="101" r="90"/><circle cx="190" cy="105" r="91"/><circle cx="9" cy="180" r="95"/><circle cx="256" cy="75" r="105"/><circle cx="345" cy="115" r="72"/><circle cx="700" cy="100" r="101"/><circle cx="600" cy="62" r="102"/><circle cx="514" cy="89" r="97"/><circle cx="782" cy="182" r="104"/></g>
+<g fill="#76AE73"><circle cx="125" cy="42" r="70"/><circle cx="238" cy="56" r="76"/><circle cx="46" cy="165" r="71"/><circle cx="612" cy="27" r="68"/><circle cx="716" cy="40" r="64"/><circle cx="763" cy="142" r="74"/></g>
+<g fill="#B7D68D"><circle cx="185" cy="41" r="35"/><circle cx="84" cy="108" r="32"/><circle cx="545" cy="75" r="38"/><circle cx="672" cy="82" r="30"/></g>
+<path d="M0 469c95-40 186-39 267 5M516 467c88-31 186-40 264-10" stroke="#D1E8B2" stroke-width="15"/>
+<path d="M0 490h780" stroke="#184C40" stroke-width="5"/>
+</svg>
