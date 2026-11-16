@@ -96,3 +96,34 @@ test('interface preserva responsividade e o formulário não usa script inline',
   assert.ok(!html.includes('javascript:'),'não usar javascript: em links');
   assert.ok(!html.includes('<script type="module">'),'sem script inline novo fora do JSON-LD');
 });
+
+test('solicitações vão para fila privada, sem publicação direta ou uso obrigatório do WhatsApp',()=>{
+  const html=read('index.html'),js=read('assets/app.js');
+  assert.match(html,/name="email" type="email"/);
+  assert.match(html,/id="businessSubmitButton"/);
+  assert.match(html,/id="businessWhatsappFallback"/);
+  assert.match(html,/href="\/privacidade\.html"/);
+  assert.match(html,/id="businessResult"/);
+  assert.match(js,/fetch\(base\+'\/rest\/v1\/business_submissions'/);
+  assert.match(js,/Prefer:'return=minimal'/);
+  assert.match(js,/contact_email:v\.email/);
+  assert.match(js,/response\.ok/);
+  assert.match(js,/id\)\s*return/);
+  assert.doesNotMatch(js,/fetch\(base\+'\/rest\/v1\/places'/);
+});
+test('somente administradores podem consultar ou aprovar indicações',()=>{
+  const migration=read('supabase/migrations/20261116030000_business_submission_review_queue.sql');
+  const admin=read('admin/admin.js');
+  assert.match(migration,/alter table public\.business_submissions enable row level security/);
+  assert.match(migration,/grant insert \(business_name,category,address,contact_name,contact_email,social_url,phone,details,consent\)/);
+  assert.doesNotMatch(migration,/grant select[^;]+to anon/i);
+  assert.match(migration,/create policy "only admins can read requests"/);
+  assert.match(migration,/create policy "only admins can update requests"/);
+  assert.match(migration,/security invoker/);
+  assert.match(migration,/bs_one_pending_per_business_idx/);
+  assert.match(admin,/loadSubmissions\(\)/);
+  assert.match(admin,/renderSubmissions\(\)/);
+  assert.match(admin,/rpc\/approve_business_submission/);
+  assert.match(admin,/data-request-reject/);
+  assert.match(admin,/data-request-approve/);
+});
