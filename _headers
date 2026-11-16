@@ -1,5 +1,13 @@
 /*
+  Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'sha256-GPhUia1hz1d+yyn4vVL+HwAbAs6z8rIbt8ayLc5gFJs='; style-src 'self' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://vlsntcyvfdvaynxxstor.supabase.co; frame-src 'none'; manifest-src 'self'; worker-src 'none'; upgrade-insecure-requests
+  Strict-Transport-Security: max-age=31536000
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Cross-Origin-Opener-Policy: same-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=(), browsing-topics=()
+  X-XSS-Protection: 0
+
+/admin/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
