@@ -176,3 +176,11 @@ O dashboard mostra separadamente:
 
 Novas versões devem publicar um novo tag/asset no GitHub Releases com a assinatura definitiva. Ao atualizar a versão, revisar o link e o `app_version` em `baixar-app.html` e `assets/download.js`, a página do dashboard e sua integração com a API do GitHub.
 
+
+## Instalação Android sem APK (PWA)
+
+A página [baixar-app.html](https://santa-cruz-conecta.pepirocha123.workers.dev/baixar-app.html) prioriza a **instalação pelo Chrome Android**, via Web App Manifest e service worker, sem baixar APK de fonte desconhecida. O APK de depuração permanece como opção separada e identificada para testes — ele pode continuar mostrando alertas de instalação.
+
+PWA tem ícone próprio, tela inicial e comportamento semelhante a aplicativo, mas necessita de internet. O `sw.js` guarda somente a página de indisponibilidade e um ícone; não armazena catálogo, tokens, informações pessoais nem dados do administrador. A instalação pode ser oferecida pelo botão ou por **Chrome → ⋮ → Instalar app / Adicionar à tela inicial**, dependendo da versão do navegador.
+
+Não existe forma legítima de garantir que um APK externo nunca será marcado pelo Play Protect. Para distribuição de um APK/AAB com menor atrito, preparar versão Release assinada de forma permanente e enviá-la para revisão da Google Play. Se ocorrer alerta de classificação incorreta, seguir o procedimento de revisão do Play Protect junto ao Google.
