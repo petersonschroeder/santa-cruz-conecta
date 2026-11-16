@@ -135,39 +135,93 @@
     businessDialog.addEventListener('close',()=>{
       if(focusBeforeDialog && typeof focusBeforeDialog.focus === 'function') focusBeforeDialog.focus();
     });
-    businessForm.addEventListener('submit',event=>{
-      event.preventDefault();
-      if(!businessForm.reportValidity())return;
+    const result=$('businessResult');
+    const submit=$('businessSubmitButton');
+    const notice=(text,error=false)=>{
+      result.textContent=text;
+      result.hidden=false;
+      result.classList.toggle('is-error',error);
+    };
+    const getValues=()=>{
       const data=new FormData(businessForm);
       const v=(name,max)=>String(data.get(name)||'').trim().slice(0,max);
-      const name=v('name',120);
-      const category=categories[v('category',80)]?.label || 'Outro';
-      const address=v('address',180);
-      const contact=v('contact',90);
-      if(!name||!address||!contact||data.get('permission')!=='on')return;
+      return { name:v('name',120),category:v('category',80),address:v('address',180),
+        contact:v('contact',90),email:v('email',160).toLowerCase(),
+        site:v('site',220),phone:v('phone',30),details:v('details',450),
+        consent:data.get('permission')==='on',honeypot:v('company_confirmation',200)};
+    };
+    const validateValues=values=>{
+      if(!businessForm.reportValidity()) return false;
+      if(!categories[values.category]||!values.consent) return false;
+      return Boolean(values.name&&values.contact&&values.address&&values.email);
+    };
+    const whatsappMessage=values=>{
       const lines=[
-        'Olá! Gostaria de indicar um comércio para o Santa Cruz Conecta.',
-        '',
-        '🏪 Comércio: '+name,
-        '📌 Categoria: '+category,
-        '📍 Bairro/endereço: '+address,
-        '👤 Responsável pelo contato: '+contact
+        'Olá! Gostaria de indicar um comércio para o Santa Cruz Conecta.','',
+        '🏪 Comércio: '+values.name,
+        '📌 Categoria: '+(categories[values.category]?.label||'Outros'),
+        '📍 Bairro/endereço: '+values.address,
+        '👤 Contato: '+values.contact,
+        '✉️ E-mail: '+values.email
       ];
-      if(v('site',220)) lines.push('🔗 Site/Instagram: '+v('site',220));
-      if(v('phone',30)) lines.push('📞 Telefone: '+v('phone',30));
-      if(v('details',450)) lines.push('📝 Sobre o negócio: '+v('details',450));
-      lines.push('','Tenho autorização para indicar estes dados. Entendo que a equipe avaliará o cadastro antes de publicá-lo.');
-      const url='https://wa.me/'+CONTACT_WHATSAPP+'?text='+encodeURIComponent(lines.join('\n'));
-      const link=document.createElement('a');
-      link.href=url;
-      link.target='_blank';
-      link.rel='noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      businessDialog.close();
-      businessForm.reset();
-      toast('Mensagem preparada. Confirme o envio no WhatsApp.');
+      if(values.site) lines.push('🔗 Site/Instagram: '+values.site);
+      if(values.phone) lines.push('📞 Telefone: '+values.phone);
+      if(values.details) lines.push('📝 Sobre o negócio: '+values.details);
+      lines.push('','Declaro ter autorização para indicar estes dados, sujeitos à análise editorial.');
+      return 'https://wa.me/'+CONTACT_WHATSAPP+'?text='+encodeURIComponent(lines.join('\n'));
+    };
+    $('businessWhatsappFallback').addEventListener('click',()=>{
+      const values=getValues();
+      if(!validateValues(values))return;
+      window.open(whatsappMessage(values),'_blank','noopener,noreferrer');
+    });
+    let submitting=false;
+    businessForm.addEventListener('submit',async event=>{
+      event.preventDefault();
+      if(submitting)return;
+      const v=getValues();
+      if(!validateValues(v))return;
+      if(v.honeypot){notice('Solicitação recebida para análise.');return;}
+      const config=window.SC_SUPABASE||{};
+      const base=String(config.url||'').replace(/\/+$/,'');
+      const key=String(config.publishableKey||'');
+      if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(base)||!key.startsWith('sb_publishable_')){
+        notice('Cadastro temporariamente indisponível. Use a opção WhatsApp.',true);return;
+      }
+      submitting=true;
+      submit.disabled=true;
+      submit.textContent='Enviando...';
+      result.hidden=true;
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),14000);
+      try{
+        const response=await fetch(base+'/rest/v1/business_submissions',{
+          method:'POST',
+          headers:{apikey:key,'Content-Type':'application/json',Prefer:'return=minimal'},
+          body:JSON.stringify({
+            business_name:v.name,category:v.category,address:v.address,
+            contact_name:v.contact,contact_email:v.email,social_url:v.site,
+            phone:v.phone,details:v.details,consent:true
+          }),
+          signal:controller.signal
+        });
+        if(!response.ok){
+          const error=await response.json().catch(()=>({}));
+          if(error.code==='23505')throw Error('Já existe uma solicitação pendente para este comércio e e-mail.');
+          if(error.code==='23514')throw Error('Os dados são inválidos ou o limite de envios foi atingido. Tente mais tarde.');
+          throw Error('Não foi possível registrar agora. Tente novamente ou use o WhatsApp.');
+        }
+        businessForm.reset();
+        notice('Sua solicitação foi registrada! Nossa equipe poderá entrar em contato pelo e-mail informado. A publicação depende de aprovação.');
+        toast('Pedido enviado para análise com sucesso.');
+      }catch(error){
+        notice(error.name==='AbortError'?'O envio demorou demais. Confira sua conexão antes de tentar novamente.':error.message,true);
+      }finally{
+        clearTimeout(timeout);
+        submitting=false;
+        submit.disabled=false;
+        submit.textContent='Enviar solicitação ↗';
+      }
     });
   }
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu.hasAttribute('hidden')){menu.setAttribute('hidden','');menuBtn.setAttribute('aria-expanded','false')}if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!/input|textarea/i.test(document.activeElement?.tagName||'')){e.preventDefault();$('directoryInput').focus();$('catalogo').scrollIntoView({behavior:'smooth',block:'start'})}});
