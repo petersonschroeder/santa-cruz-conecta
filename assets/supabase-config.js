@@ -1,6 +1,5 @@
-/* Configuração pública: URL e chave publishable (nunca cole secret/service_role).
- * Deixe vazio para usar apenas o catálogo local até o Supabase estar pronto. */
+/* Configuração pública do Supabase. Nunca usar chaves secret/service_role aqui. */
 window.SC_SUPABASE = {
-  url: '',
-  publishableKey: ''
+  url: 'https://vlsntcyvfdvaynxxstor.supabase.co',
+  publishableKey: 'sb_publishable_4cMsKkFbgMmIq4MjEr5K3g_tNh0tfap'
 };
