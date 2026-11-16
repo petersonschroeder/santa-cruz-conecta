@@ -29,7 +29,14 @@
   let favorites = readFavs();
   function storeFavs(){try{localStorage.setItem(FAVORITES_KEY,JSON.stringify([...favorites]))}catch{/* Navegação privada: sessão atual ainda funciona */}}
   const categoryLabel = id => categories[id]?.label || 'Outros';
-  function getMark(place){return `assets/brands/${encodeURIComponent(place.id)}.svg`}
+  function getFallbackMark(place){return `assets/brands/${encodeURIComponent(place.id)}.svg`}
+  function getMark(place){
+    if(/^https:\/\//i.test(place.logoUrl||'')) return place.logoUrl;
+    if(place.linkType==='site' && /^https:\/\//i.test(place.url||'')){
+      try {return 'https://www.google.com/s2/favicons?domain='+encodeURIComponent(new URL(place.url).hostname)+'&sz=128'} catch {}
+    }
+    return getFallbackMark(place);
+  }
   function linkTitle(place){return place.linkType==='guia'?'Ver guia oficial':place.linkType==='canais'?'Ver canais oficiais':place.id==='passagens'?'Consultar passagens':'Visitar site'}
   function getMapUrl(place){return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([place.name,place.address,'Santa Cruz do Sul, RS, Brasil'].filter(Boolean).join(', '))}`}
   function matching(){
@@ -48,9 +55,9 @@
   function placeCard(p){
     const isGuide=p.linkType==='guia';
     const map=p.address?`<a href="${escapeHtml(getMapUrl(p))}" class="map-link" target="_blank" rel="noopener noreferrer" aria-label="Ver ${escapeHtml(p.name)} no mapa">Ver no mapa ↗</a>`:'';
-    return `<article class="place-card"><div class="place-top"><img class="place-mark" src="${getMark(p)}" alt="Ícone de ${escapeHtml(p.name)}" width="51" height="51" loading="lazy"><div class="place-name-block"><div class="place-category">${escapeHtml(categoryLabel(p.category))}</div><h3>${escapeHtml(p.name)}</h3></div>${favoriteButton(p)}</div><p class="place-description">${escapeHtml(p.description)}</p><div class="place-bottom">${p.address?`<span class="place-address" title="${escapeHtml(p.address)}">⌖ ${escapeHtml(p.address)}</span>`:`<span class="place-address">${escapeHtml(p.subtitle)}</span>`}<div class="place-actions"><a href="${escapeHtml(safeUrl(p.url))}" class="place-link" target="_blank" rel="noopener noreferrer" aria-label="${linkTitle(p)}: ${escapeHtml(p.name)} (abre em nova guia)">${linkTitle(p)} <span aria-hidden="true">↗</span></a>${map||`<span class="place-type">${isGuide?'Guia público':'Link externo'}</span>`}</div></div></article>`;
+    return `<article class="place-card"><div class="place-top"><img class="place-mark" src="${escapeHtml(getMark(p))}" data-fallback="${escapeHtml(getFallbackMark(p))}" alt="Ícone de ${escapeHtml(p.name)}" width="51" height="51" loading="lazy"><div class="place-name-block"><div class="place-category">${escapeHtml(categoryLabel(p.category))}</div><h3>${escapeHtml(p.name)}</h3></div>${favoriteButton(p)}</div><p class="place-description">${escapeHtml(p.description)}</p><div class="place-bottom">${p.address?`<span class="place-address" title="${escapeHtml(p.address)}">⌖ ${escapeHtml(p.address)}</span>`:`<span class="place-address">${escapeHtml(p.subtitle)}</span>`}<div class="place-actions"><a href="${escapeHtml(safeUrl(p.url))}" class="place-link" target="_blank" rel="noopener noreferrer" aria-label="${linkTitle(p)}: ${escapeHtml(p.name)} (abre em nova guia)">${linkTitle(p)} <span aria-hidden="true">↗</span></a>${map||`<span class="place-type">${isGuide?'Guia público':'Link externo'}</span>`}</div></div></article>`;
   }
-  function featuredCard(p){return `<a href="${escapeHtml(safeUrl(p.url))}" class="feature-card" target="_blank" rel="noopener noreferrer" aria-label="Conhecer ${escapeHtml(p.name)} (abre em nova guia)"><div class="feature-top"><img class="place-mark" src="${getMark(p)}" alt="" loading="lazy" width="56" height="56"><span class="feature-arrow" aria-hidden="true">↗</span></div><span class="feature-cat">${escapeHtml(categoryLabel(p.category))}</span><h3>${escapeHtml(p.name)}</h3><p>${escapeHtml(p.subtitle)}</p></a>`}
+  function featuredCard(p){return `<a href="${escapeHtml(safeUrl(p.url))}" class="feature-card" target="_blank" rel="noopener noreferrer" aria-label="Conhecer ${escapeHtml(p.name)} (abre em nova guia)"><div class="feature-top"><img class="place-mark" src="${escapeHtml(getMark(p))}" data-fallback="${escapeHtml(getFallbackMark(p))}" alt="" loading="lazy" width="56" height="56"><span class="feature-arrow" aria-hidden="true">↗</span></div><span class="feature-cat">${escapeHtml(categoryLabel(p.category))}</span><h3>${escapeHtml(p.name)}</h3><p>${escapeHtml(p.subtitle)}</p></a>`}
   function renderCategories(){const grid=$('categoryGrid');grid.innerHTML=Object.entries(categories).map(([id,c])=>`<button type="button" class="category-tile" data-category="${escapeHtml(id)}" aria-label="Ver ${escapeHtml(c.label)}"><span class="category-symbol" style="--tint:${escapeHtml(c.tint)}">${icon(c.icon)}</span><strong>${escapeHtml(c.label)}</strong><span>${escapeHtml(c.description)}</span></button>`).join('')}
   function renderChips(){const counts=Object.fromEntries(Object.keys(categories).map(k=>[k,places.filter(p=>p.category===k).length]));const list=[['todos','Todos',places.length],...Object.entries(categories).map(([k,v])=>[k,v.label,counts[k]])];$('filterChips').innerHTML=list.map(([id,label,count])=>`<button type="button" class="filter-chip" data-filter="${id}" aria-pressed="${id===state.category}">${escapeHtml(label)} <span class="chip-count">${count}</span></button>`).join('')}
   function updateBadges(){const n=favorites.size;$('favoriteCount').textContent=n;$('favoriteCount').hidden=!n;$('favoritesFilter').setAttribute('aria-pressed',String(state.favoritesOnly));$('favoritesFilter').setAttribute('aria-label',state.favoritesOnly?'Exibindo favoritos; clique para mostrar todos':'Mostrar somente favoritos');$('clearSearch').hidden=!state.search}
@@ -69,6 +76,15 @@
   function setSearch(term,scroll=false){state.search=term;$('directoryInput').value=term;$('heroInput').value=term;state.limit=9;render();if(scroll)$('catalogo').scrollIntoView({behavior:'smooth',block:'start'})}
   function reset(){state.category='todos';state.search='';state.favoritesOnly=false;state.sort='recommended';state.limit=9;$('heroInput').value='';$('directoryInput').value='';$('sortBy').value='recommended';render()}
   if(!places.length){$('resultsInfo').textContent='Não foi possível carregar o catálogo.';return}
+  document.addEventListener('error', e => {
+    const image=e.target;
+    if(!(image instanceof HTMLImageElement) || !image.classList.contains('place-mark')) return;
+    if(image.dataset.fallback){
+      const path=image.dataset.fallback;
+      delete image.dataset.fallback;
+      image.src=path;
+    } else if(!image.src.endsWith('/assets/logo.svg')) image.src='assets/logo.svg';
+  }, true);
   renderCategories();
   $('featuredGrid').innerHTML=places.filter(p=>p.featured).slice(0,6).map(featuredCard).join('');
   $('year').textContent=new Date().getFullYear();
