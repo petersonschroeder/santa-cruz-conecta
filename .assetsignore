@@ -1,6 +1,7 @@
 # Não publicar código-fonte administrativo, migrações ou arquivos de trabalho.
 /.git/
 /.github/
+/tests/
 .gitignore
 .assetsignore
 .env
