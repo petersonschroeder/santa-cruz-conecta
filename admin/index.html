@@ -32,7 +32,7 @@
 </div>
 </section>
 <section id="panelView" hidden>
-<div class="intro"><div><span class="eyebrow">GERENCIAMENTO DA CIDADE</span><h1>Seus estabelecimentos.</h1><p class="muted">Cadastre, edite, publique e personalize os locais exibidos no portal.</p></div>
+<div class="intro"><div><span class="eyebrow">VISÃO GERAL · SANTA CRUZ CONECTA</span><h1>Central de gestão da cidade.</h1><p class="muted">Acompanhe o catálogo, os cliques nos sites das lojas e os links que precisam de conferência.</p></div>
 <button type="button" class="primary" id="newPlace">+ Novo estabelecimento</button></div>
 <div class="stats">
 <div class="card stat"><strong id="statTotal">—</strong><span>Locais cadastrados</span></div>
@@ -40,13 +40,26 @@
 <div class="card stat"><strong id="statDraft">—</strong><span>Rascunhos</span></div>
 <div class="card stat"><strong id="statCategories">—</strong><span>Categorias em uso</span></div>
 <div class="card stat stat-submissions"><strong id="statPending">—</strong><span>Solicitações aguardando análise</span></div>
+<div class="card stat stat-accent"><strong id="statClicks30">—</strong><span>Cliques em links · 30 dias</span></div>
+<div class="card stat"><strong id="statNeedsReview">—</strong><span>Links ainda não conferidos</span></div>
 </div>
-<section class="card">
+<div class="overview-nav"><a href="#catalogoAdmin">Gerenciar locais</a><a href="#auditoria">Qualidade dos links</a><a href="#solicitacoes">Solicitações</a><a href="/" target="_blank" rel="noopener noreferrer">Ver portal ↗</a></div>
+<div class="insights-grid">
+  <section class="card insight-card" aria-labelledby="categoriesOverview"><div class="insight-head"><h2 id="categoriesOverview">Catálogo por categoria</h2><span class="muted">Distribuição de locais cadastrados</span></div><div id="categoryBars" class="bar-list"></div></section>
+  <section class="card insight-card" aria-labelledby="mostVisited"><div class="insight-head"><h2 id="mostVisited">Sites mais acessados</h2><span class="muted">Cliques nos últimos 30 dias · não são visitas únicas</span></div><div id="topStores" class="bar-list"></div><p class="hint">Contagem iniciada nesta versão. Navegação direta ao site da loja não é contabilizada.</p></section>
+</div>
+<section class="card directory-admin-card" id="catalogoAdmin">
 <div><h2>Diretório de locais</h2><p class="muted">As mudanças salvas aparecem no site público, sem necessidade de novo deploy.</p></div>
-<div class="toolbar"><input id="search" type="search" placeholder="Pesquisar estabelecimento..." aria-label="Pesquisar estabelecimento"><select id="statusFilter" aria-label="Filtrar publicação"><option value="all">Todos os status</option><option value="published">Publicados</option><option value="draft">Rascunhos</option></select><button id="reload" class="ghost" type="button">Atualizar</button></div>
-<div class="table-scroll"><table><thead><tr><th>Estabelecimento</th><th>Categoria</th><th>Status</th><th>Endereço</th><th>Ações</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="toolbar"><input id="search" type="search" placeholder="Pesquisar estabelecimento, loja ou endereço..." aria-label="Pesquisar estabelecimento"><select id="statusFilter" aria-label="Filtrar publicação"><option value="all">Todos os status</option><option value="published">Publicados</option><option value="draft">Rascunhos</option></select><select id="categoryFilter" aria-label="Filtrar categoria"><option value="all">Todas as categorias</option></select><select id="reviewFilter" aria-label="Filtrar links"><option value="all">Qualquer revisão</option><option value="pending">Não revisados</option><option value="needs_review">Precisam de correção</option><option value="reviewed">Conferidos</option></select><button id="reload" class="ghost" type="button">Atualizar</button></div>
+<div class="table-scroll"><table><thead><tr><th>Estabelecimento</th><th>Categoria</th><th>Publicação</th><th>Link</th><th>Revisão</th><th>Cliques 30d</th><th>Ações</th></tr></thead><tbody id="rows"></tbody></table></div>
 <div id="empty" hidden>Nenhum estabelecimento encontrado.</div>
 <div class="notice" id="panelMessage" role="status" aria-live="polite"></div>
+</section>
+<section class="card quality-card" id="auditoria" aria-labelledby="auditTitle">
+  <div class="quality-header"><div><span class="eyebrow">CURADORIA DIGITAL</span><h2 id="auditTitle">Qualidade dos links</h2><p class="muted">Priorize sites com endereços ausentes, páginas genéricas e links ainda sem conferência editorial.</p></div><button id="refreshAudit" class="ghost" type="button">Recarregar dados</button></div>
+  <div class="quality-stats" id="qualityStats"></div>
+  <div class="audit-items" id="auditItems"></div>
+  <p class="hint">Conferência editorial é manual: marcar um link como conferido não garante que o site continuará disponível.</p>
 </section>
 <section class="card requests-card" id="solicitacoes" aria-labelledby="requestsTitle">
 <div class="requests-head"><div><span class="eyebrow">PARTICIPAÇÃO DA COMUNIDADE</span><h2 id="requestsTitle">Solicitações de comércios <span class="pending-count" id="requestsCount">0 pendentes</span></h2><p class="muted">Confira os dados enviados e aprove, rejeite ou prepare o cadastro para publicação.</p></div><button id="reloadRequests" class="ghost" type="button">Atualizar pedidos</button></div>
@@ -66,7 +79,9 @@
 <label class="field span2">Descrição *<textarea name="description" maxlength="650" required></textarea></label>
 <label class="field">Subtítulo<input name="subtitle" maxlength="150" placeholder="Ex.: Restaurante • Pizzaria"></label>
 <label class="field">Tipo de link<select name="link_type"><option value="site">Site próprio</option><option value="guia">Página informativa</option><option value="canais">Redes ou canais oficiais</option></select></label>
+<label class="field">Conferência da fonte<select name="link_review_status"><option value="pending">Pendente</option><option value="reviewed">Link conferido manualmente</option><option value="needs_review">Precisa revisão</option></select></label>
 <label class="field span2">Site ou página externa (HTTPS) *<input name="website_url" type="url" placeholder="https://..." required></label>
+<label class="field span2">Fonte de verificação (opcional)<input name="source_url" type="url" placeholder="https://..."><small>Link usado para confirmar a existência do comércio na cidade.</small></label>
 <label class="field">Endereço<input name="address" maxlength="200"></label>
 <label class="field">Telefone<input name="phone" maxlength="50"></label>
 <label class="field span2">Palavras-chave separadas por vírgula<input name="tags" maxlength="350" placeholder="pizza, delivery, gastronomia"></label>
