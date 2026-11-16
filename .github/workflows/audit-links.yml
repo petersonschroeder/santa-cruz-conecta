@@ -1,5 +1,10 @@
 name: Auditoria semanal dos links de lojas
 on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/audit-links.mjs
+      - .github/workflows/audit-links.yml
   workflow_dispatch:
   schedule:
     - cron: '0 12 * * 2'
