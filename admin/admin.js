@@ -8,7 +8,7 @@ const $ = id => document.getElementById(id);
 const SESSION_KEY = 'santacruzconecta:admin:v1';
 const cats = window.SC_CATEGORIES || {};
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let session = null, places = [], currentId = null, busy = false;
+let session = null, places = [], submissions = [], currentId = null, currentSubmissionId = null, busy = false;
 const loadStored = () => { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } };
 const saveSession = value => { session = value; if (value) sessionStorage.setItem(SESSION_KEY, JSON.stringify(value)); else sessionStorage.removeItem(SESSION_KEY); };
 const message = (id,text,error=false) => { const el=$(id); el.textContent=text; el.classList.toggle('error',!!error); };
@@ -61,7 +61,7 @@ function showDashboard() { $('authView').hidden=true; $('panelView').hidden=fals
 function showLogin() { $('authView').hidden=false; $('panelView').hidden=true; $('logout').hidden=true; $('account').textContent=''; }
 async function activate() {
   if (!(await isAdmin())) { saveSession(null); showLogin(); message('loginMessage','Esta conta ainda não tem permissão de administrador.',true); return; }
-  showDashboard(); await loadPlaces();
+  showDashboard(); await Promise.all([loadPlaces(), loadSubmissions()]);
 }
 async function logout() {
   try { if (session) await request('/auth/v1/logout',{method:'POST',allowRefresh:false}); } catch {}
@@ -75,6 +75,95 @@ async function loadPlaces() {
     message('panelMessage','');
   } catch(e){message('panelMessage','Não foi possível carregar os dados: '+e.message,true);}
 }
+async function loadSubmissions(){
+  try {
+    const rows=await request('/rest/v1/business_submissions?select=*&order=created_at.desc&limit=1000');
+    submissions=Array.isArray(rows)?rows:[];
+    $('statPending').textContent=submissions.filter(r=>r.status==='pending').length;
+    $('requestsCount').textContent=submissions.filter(r=>r.status==='pending').length+' pendentes';
+    renderSubmissions();
+    message('requestsMessage','');
+  }catch(err){ message('requestsMessage','Não foi possível carregar solicitações: '+err.message,true); }
+}
+function renderSubmissions(){
+  const term=$('requestSearch').value.toLocaleLowerCase('pt-BR').trim();
+  const status=$('requestStatusFilter').value;
+  const filtered=submissions.filter(r=>
+    (status==='all'||r.status===status) &&
+    [r.business_name,r.address,r.contact_name,r.contact_email,r.category,r.social_url].join(' ').toLocaleLowerCase('pt-BR').includes(term)
+  );
+  $('requestsEmpty').hidden=filtered.length>0;
+  $('requestRows').innerHTML=filtered.map(r=>{
+    const date=new Date(r.created_at);
+    const dateLabel=Number.isNaN(date.getTime())?'—':date.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+    const statusLabel={pending:'Pendente',approved:'Aprovada',rejected:'Rejeitada'}[r.status]||r.status;
+    const statusClass=r.status==='approved'?'live':r.status==='rejected'?'rejected':'';
+    const website=validHttps(r.social_url) ? '<a href="'+esc(r.social_url)+'" target="_blank" rel="noopener noreferrer">Ver site indicado ↗</a>':'';
+    return '<article class="request-card"><div class="request-main">'+
+      '<div class="request-top"><span class="status '+statusClass+'">'+esc(statusLabel)+'</span><time datetime="'+esc(r.created_at)+'">'+esc(dateLabel)+'</time></div>'+
+      '<h3>'+esc(r.business_name)+'</h3>'+
+      '<p class="request-meta">'+esc(cats[r.category]?.label||r.category)+' · '+esc(r.address)+'</p>'+
+      '<div class="request-contact"><span><strong>Contato:</strong> '+esc(r.contact_name)+'</span><span><strong>E-mail:</strong> '+esc(r.contact_email)+'</span></div>'+
+      (r.phone?'<p><strong>Telefone informado:</strong> '+esc(r.phone)+'</p>':'')+
+      (r.social_url?'<p><strong>Site ou perfil informado:</strong> '+esc(r.social_url)+' '+website+'</p>':'')+
+      (r.details?'<p><strong>Sobre:</strong> '+esc(r.details)+'</p>':'')+
+      (r.review_notes?'<p class="request-note"><strong>Observações da análise:</strong> '+esc(r.review_notes)+'</p>':'')+
+      (r.published_place_id?'<p class="request-note">Estabelecimento criado: '+esc(r.published_place_id)+'</p>':'')+
+      '</div><div class="request-actions">'+
+      (r.status==='pending'?'<button type="button" class="primary" data-request-approve="'+esc(r.id)+'">Revisar e aprovar</button><button type="button" class="danger" data-request-reject="'+esc(r.id)+'">Rejeitar</button>':'')+
+      (r.status==='rejected'?'<button type="button" class="ghost" data-request-reopen="'+esc(r.id)+'">Reabrir</button>':'')+
+      '</div></article>';
+  }).join('');
+}
+function openSubmission(id){
+  const r=submissions.find(v=>v.id===id && v.status==='pending');
+  if(!r)return;
+  openForm();
+  currentSubmissionId=r.id;
+  const form=$('placeForm');
+  form.elements.name.value=r.business_name;
+  form.elements.category.value=r.category;
+  form.elements.address.value=r.address;
+  form.elements.phone.value=r.phone||'';
+  form.elements.description.value=r.details||('Conheça '+r.business_name+' em Santa Cruz do Sul.');
+  form.elements.subtitle.value=(cats[r.category]?.label||'Comércio')+' · Santa Cruz do Sul';
+  const original=String(r.social_url||'').trim();
+  const website=validHttps(original)?original:/^[\w.-]+\.[a-z]{2,}\b/i.test(original)?'https://'+original:'';
+  form.elements.website_url.value=website;
+  form.elements.link_type.value=website && /(?:instagram|facebook|linktr\.ee|wa\.me)/i.test(website)?'canais':'site';
+  form.elements.is_published.checked=true;
+  $('formTitle').textContent='Aprovar '+r.business_name;
+  $('saveButton').textContent='Aprovar e salvar no catálogo';
+  $('placeForm').elements.name.focus();
+}
+async function updateSubmissionStatus(id,status,review_notes=''){
+  if(!session?.user?.id)throw Error('Sessão de administrador inválida.');
+  await request('/rest/v1/business_submissions?id=eq.'+encodeURIComponent(id)+'&status=eq.'+(status==='rejected'?'pending':'rejected'),{
+    method:'PATCH',
+    payload:{status,review_notes,reviewed_by:status==='pending'?null:session.user.id,reviewed_at:status==='pending'?null:new Date().toISOString()},
+    headers:{Prefer:'return=minimal'}
+  });
+  await loadSubmissions();
+}
+async function rejectSubmission(id){
+  const r=submissions.find(v=>v.id===id && v.status==='pending');
+  if(!r)return;
+  const reason=prompt('Motivo da rejeição (opcional; será visível somente para administradores):','');
+  if(reason===null)return;
+  if(!confirm('Rejeitar a solicitação de '+r.business_name+'?'))return;
+  try{
+    await updateSubmissionStatus(id,'rejected',reason.slice(0,600));
+    message('requestsMessage','Solicitação rejeitada.');
+  }catch(err){message('requestsMessage','Erro ao rejeitar: '+err.message,true);}
+}
+async function reopenSubmission(id){
+  if(!confirm('Reabrir esta solicitação para análise?'))return;
+  try{
+    await updateSubmissionStatus(id,'pending','');
+    message('requestsMessage','Solicitação reaberta.');
+  }catch(err){message('requestsMessage','Erro ao reabrir: '+err.message,true);}
+}
+
 function updateStats(){
   $('statTotal').textContent=places.length;
   $('statLive').textContent=places.filter(p=>p.is_published).length;
@@ -98,10 +187,12 @@ function render() {
 const slug = value=>String(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,66);
 function openForm(id=null) {
   currentId=id;
+  currentSubmissionId=null;
   const p=places.find(x=>x.id===id);
   $('placeForm').reset();
   $('placeForm').elements.is_published.checked=true;
   $('formTitle').textContent=p?'Editar '+p.name:'Novo estabelecimento';
+  $('saveButton').textContent='Salvar estabelecimento';
   if (p) {
     for (const field of ['name','category','description','subtitle','website_url','link_type','address','phone','logo_url','featured','is_published']) {
       const el=$('placeForm').elements.namedItem(field);
@@ -149,15 +240,28 @@ async function save(e) {
   busy=true; $('saveButton').disabled=true; $('saveButton').textContent='Salvando...';
   try {
     if ($('logoFile').files[0]) payload.logo_url=await uploadLogo($('logoFile').files[0]);
-    if (currentId) {
+    if (currentSubmissionId) {
+      await request('/rest/v1/rpc/approve_business_submission',{
+        method:'POST',
+        payload:{
+          p_request_id:currentSubmissionId,p_name:payload.name,p_description:payload.description,
+          p_website_url:payload.website_url,p_link_type:payload.link_type,
+          p_subtitle:payload.subtitle,p_phone:payload.phone,p_logo_url:payload.logo_url,
+          p_publish:payload.is_published
+        }
+      });
+    } else if (currentId) {
       await request('/rest/v1/places?id=eq.'+encodeURIComponent(id),{
         method:'PATCH',payload,headers:{Prefer:'return=minimal'}
       });
     } else {
       await request('/rest/v1/places',{method:'POST',payload,headers:{Prefer:'return=minimal'}});
     }
-    $('editDialog').close(); await loadPlaces();
-    message('panelMessage','Estabelecimento salvo com sucesso!');
+    const approved=Boolean(currentSubmissionId);
+    $('editDialog').close();
+    currentSubmissionId=null;
+    await Promise.all([loadPlaces(), loadSubmissions()]);
+    message(approved?'requestsMessage':'panelMessage',approved?'Solicitação aprovada e estabelecimento incluído no catálogo.':'Estabelecimento salvo com sucesso!');
   } catch(err){alert('Não foi possível salvar: '+err.message);}
   finally{busy=false;$('saveButton').disabled=false;$('saveButton').textContent='Salvar estabelecimento';}
 }
@@ -192,6 +296,15 @@ function init() {
   $('logout').addEventListener('click',logout);
   $('search').addEventListener('input',render); $('statusFilter').addEventListener('change',render);
   $('reload').addEventListener('click',loadPlaces); $('newPlace').addEventListener('click',()=>openForm());
+  $('reloadRequests').addEventListener('click',loadSubmissions);
+  $('requestSearch').addEventListener('input',renderSubmissions);
+  $('requestStatusFilter').addEventListener('change',renderSubmissions);
+  $('requestRows').addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.requestApprove)openSubmission(b.dataset.requestApprove);
+    else if(b.dataset.requestReject)rejectSubmission(b.dataset.requestReject);
+    else if(b.dataset.requestReopen)reopenSubmission(b.dataset.requestReopen);
+  });
   $('rows').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
     if(b.dataset.edit)openForm(b.dataset.edit);
