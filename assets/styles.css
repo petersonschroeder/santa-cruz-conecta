@@ -190,3 +190,16 @@ body{background:var(--paper)}
  .toast{bottom:78px}
 }
 @media(prefers-reduced-motion:reduce){.contact-whatsapp,.community-primary,.community-secondary{transition:none}}
+
+
+/* Formulário conectado a fila segura no Supabase. */
+.business-result{padding:13px 15px;border-radius:12px;margin:15px 0;background:#e4f7e6;border:1px solid #a8dcb3;color:#225c3a;font-size:12px;line-height:1.6;font-weight:700}
+.business-result.is-error{background:#fff3ef;border-color:#f1cabc;color:#9a382c}
+.business-honeypot{position:absolute!important;width:1px;height:1px;overflow:hidden;left:-10000px;opacity:0;pointer-events:none}
+.business-consent a{color:#246f48;text-decoration:underline;text-underline-offset:3px}
+.business-submit-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:9px}
+.business-whatsapp-alt{font-weight:800;border:1px solid #c2d6c5;background:#f2f8f1;color:#34664f;padding:13px 16px;border-radius:10px;font-size:12px}
+.business-whatsapp-alt:hover{background:#e4f4df}
+.business-submit:disabled{opacity:.6;cursor:wait}
+@media(max-width:760px){.business-dialog-footer{flex-direction:column;align-items:stretch}.business-dialog-footer p{max-width:none}.business-submit-actions{width:100%}.business-submit-actions>button{flex:1}}
+@media(max-width:540px){.business-submit-actions{flex-direction:column}.business-submit-actions>button{width:100%}}
