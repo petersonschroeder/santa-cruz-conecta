@@ -38,9 +38,9 @@ window.SC_CATEGORIES = {
     "tint": "#e3f1f8"
   },
   "comercio": {
-    "label": "Comércio",
+    "label": "Lojas & comércio",
     "icon": "store",
-    "description": "Lojas e shopping",
+    "description": "Moda, casa e tecnologia",
     "tint": "#f3ebdd"
   },
   "educacao": {
