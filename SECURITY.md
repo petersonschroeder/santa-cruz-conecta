@@ -99,3 +99,16 @@ Referências: [Supabase Production Checklist](https://supabase.com/docs/guides/s
 - A política de privacidade informa a contagem agregada de cliques. Se o projeto crescer, criar política de retenção dos eventos e avaliar mecanismos anti-bot e relatórios escaláveis.
 - **Conferir em Supabase Auth → Security:** o Security Advisor detectou proteção contra senhas vazadas desabilitada. Avalie habilitá-la quando disponível no seu plano e mantenha MFA na conta administradora.
 
+
+
+## Android, contagem de downloads e distribuição
+
+- APK de testes criado em `android/`, compatível com Android 8+, somente `INTERNET`. `WebView` não aceita HTTP plano, acesso a arquivos locais ou exceções de certificado SSL; debug de WebView desabilitado.
+- O APK beta está em GitHub Releases e tem assinatura de **debug**. Não usar para distribuição de produção ou Play Store: será necessária assinatura persistente e privada, proteção da chave, lançamento assinado e verificação no dispositivo.
+- O link de APK pertence ao repositório `petersonschroeder/santa-cruz-conecta`; não confiar em APKs de terceiros.
+- A tabela `android_download_events` não contém IP, agente do navegador, nome nem e-mail. Os únicos dados do evento são versão, origem e horário. RLS deixa `anon` inserir somente os campos permitidos e bloqueia leitura.
+- O resumo `android_download_summary` é `security_invoker` e filtra explicitamente `admin_users`. Nenhum anônimo ou usuário autenticado comum acessa os números; a contagem oficial do GitHub `download_count` é pública por natureza.
+- O endpoint público de evento tem limite global por versão (60/minuto e 2.000/dia). Essas métricas podem ser manipuladas e não comprovam instalação; não são fontes adequadas para faturamento.
+- O dashboard carrega `https://api.github.com` usando apenas GET da API pública; a CSP adiciona **somente** esse host como permitido em `connect-src`.
+- Política de Privacidade divulga os eventos de intenção de download. Não adicionar rastreadores pessoais sem atualizar a base legal e as informações prestadas aos usuários.
+
