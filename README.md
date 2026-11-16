@@ -151,3 +151,28 @@ Documentos relevantes:
 - `supabase/seeds/20261116_comercio_curado.sql`
 - `scripts/audit-links.mjs` (excluído da publicação pública pela `.assetsignore`)
 
+
+
+## Aplicativo Android (beta)
+
+O portal também está disponível em versão Android **beta** (`br.com.santacruzconecta.app`), construída com Java 17 e Android Gradle Plugin 8.9.2. A versão inicial abre o site publicado em uma WebView restrita ao domínio oficial, com HTTPS obrigatório e links de terceiros enviados ao navegador ou aplicativo externo.
+
+- **Página para usuários:** https://santa-cruz-conecta.pepirocha123.workers.dev/baixar-app.html
+- **APK beta direto:** https://github.com/petersonschroeder/santa-cruz-conecta/releases/download/android-v1.0.0-beta.1/SantaCruzConecta-beta.apk
+- **Lançamento verificável:** https://github.com/petersonschroeder/santa-cruz-conecta/releases/tag/android-v1.0.0-beta.1
+- **Código-fonte:** `android/`.
+- **Compilação automática:** `.github/workflows/android-apk.yml` — Gradle `assembleDebug`, artefato temporário no Actions e APK beta no GitHub Releases.
+
+Para instalar no Android 8.0 ou superior: abra a página de download, baixe o APK e confirme a instalação, autorizando a fonte do download somente quando solicitado. O app necessita de internet; não requer acesso à câmera, localização ou contatos.
+
+**Importante:** o APK beta usa uma **assinatura de depuração criada pelo runner do GitHub**. Não é a versão final para Play Store, e futuras atualizações poderão exigir reinstalação. Para produção, gerar e guardar com segurança uma chave de assinatura permanente (fora do repositório e do chat) e configurar build assinado. Jamais compartilhar o arquivo keystore ou sua senha em mensagens.
+
+### Indicadores do APK no painel administrativo
+
+O dashboard mostra separadamente:
+- **Downloads do APK no GitHub:** número da API pública GitHub Releases (`download_count` do arquivo). É mais próximo dos downloads do arquivo, mas não comprova que a instalação terminou.
+- **Cliques em baixar na página:** solicitações iniciadas por visitantes pela página `/baixar-app.html`, registradas na tabela `android_download_events`, sem dados pessoais. Inclui total, últimos sete dias e últimos trinta dias. Um bloqueio de rede ou fechamento da página pode impedir registro. Um filtro de sessão reduz cliques duplicados por dois minutos.
+- **Limites:** 60 eventos por minuto e 2.000 por dia por versão, via trigger em schema privado. Registro público por coluna e RLS, visualização somente de administradores. Não interpretar os dados como usuários únicos, instalações concluídas ou uso ativo do app.
+
+Novas versões devem publicar um novo tag/asset no GitHub Releases com a assinatura definitiva. Ao atualizar a versão, revisar o link e o `app_version` em `baixar-app.html` e `assets/download.js`, a página do dashboard e sua integração com a API do GitHub.
+
