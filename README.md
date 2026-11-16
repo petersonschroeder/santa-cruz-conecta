@@ -184,3 +184,10 @@ A página [baixar-app.html](https://santa-cruz-conecta.pepirocha123.workers.dev/
 PWA tem ícone próprio, tela inicial e comportamento semelhante a aplicativo, mas necessita de internet. O `sw.js` guarda somente a página de indisponibilidade e um ícone; não armazena catálogo, tokens, informações pessoais nem dados do administrador. A instalação pode ser oferecida pelo botão ou por **Chrome → ⋮ → Instalar app / Adicionar à tela inicial**, dependendo da versão do navegador.
 
 Não existe forma legítima de garantir que um APK externo nunca será marcado pelo Play Protect. Para distribuição de um APK/AAB com menor atrito, preparar versão Release assinada de forma permanente e enviá-la para revisão da Google Play. Se ocorrer alerta de classificação incorreta, seguir o procedimento de revisão do Play Protect junto ao Google.
+
+
+### Contador de instalações sem APK
+
+A instalação pelo Chrome dispara o evento `appinstalled` em navegadores compatíveis. Nesse caso, `assets/pwa-install.js` envia apenas a categoria de plataforma (`android` ou `desktop`) à tabela `pwa_install_events`, sem dados pessoais. O painel `/admin/` exibe totais e períodos pela visão `pwa_install_summary`. Essa é uma **estimativa**, não uma contagem garantida de instalações: ações manuais de “Adicionar à tela inicial” podem não emitir o evento. A tabela possui RLS e um limite contra volumes excessivos.
+
+Documentação da migração: `supabase/migrations/20261116053000_pwa_browser_install_metrics.sql`. Os downloads do APK do GitHub são registrados separadamente dos eventos de instalação PWA. Não classifique um clique, instalação PWA, download de APK e instalação de APK como equivalentes.
