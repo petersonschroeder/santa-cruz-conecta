@@ -18,4 +18,6 @@ jobs:
       - name: Conferir versão do Node.js
         run: node --version
       - name: Verificação estática e regressões de segurança
-        run: node --test tests/security.test.mjs
+        run: |
+          node --check scripts/audit-links.mjs
+          node --test tests/security.test.mjs
