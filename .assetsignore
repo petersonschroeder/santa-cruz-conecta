@@ -1,0 +1,21 @@
+# Não publicar código-fonte administrativo, migrações ou arquivos de trabalho.
+/.git/
+/.github/
+.gitignore
+.assetsignore
+.env
+.env.*
+*.md
+README.md
+/supabase/
+*.sql
+*.map
+*.log
+*.zip
+*.bak
+*.tmp
+wrangler.jsonc
+wrangler.toml
+package.json
+package-lock.json
+node_modules/
