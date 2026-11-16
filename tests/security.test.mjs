@@ -126,3 +126,52 @@ test('somente administradores podem consultar ou aprovar indicações',()=>{
   assert.match(admin,/data-request-reject/);
   assert.match(admin,/data-request-approve/);
 });
+
+test('dashboard reúne relatórios de cliques e curadoria sem revelar dados para visitantes',()=>{
+  const html=read('admin/index.html'),admin=read('admin/admin.js');
+  for(const id of ['statClicks30','statNeedsReview','categoryBars','topStores','auditItems','categoryFilter','reviewFilter'])
+    assert.ok(html.includes('id="'+id+'"'),id+' deve existir');
+  assert.match(admin,/place_click_summary/);
+  assert.match(admin,/function renderQuality/);
+  assert.match(admin,/function renderOverview/);
+  assert.match(admin,/data-mark-review/);
+  assert.match(admin,/link_review_status/);
+  const schema=read('supabase/migrations/20261116040000_commercial_link_review_and_click_metrics.sql');
+  const summary=read('supabase/migrations/20261116041000_restrict_click_summary_to_admins.sql');
+  const throttling=read('supabase/migrations/20261116042000_click_metrics_public_rate_limits.sql');
+  assert.match(schema,/enable row level security/);
+  assert.match(schema,/grant insert\(place_id\) on public\.place_clicks to anon/);
+  assert.match(schema,/with\(security_invoker = true\)/);
+  assert.match(summary,/from public\.admin_users/);
+  assert.match(summary,/auth\.uid\(\)/);
+  assert.match(throttling,/app_private\.limit_place_clicks/);
+  assert.match(throttling,/interval '24 hours'/);
+});
+
+test('site mede só clique no link externo e não coleta dados pessoais',()=>{
+  const app=read('assets/app.js'),privacy=read('privacidade.html');
+  assert.match(app,/data-place-visit/);
+  assert.match(app,/rest\/v1\/place_clicks/);
+  assert.match(app,/keepalive:true/);
+  assert.match(app,/sessionStorage\.setItem\(dedupKey/);
+  assert.doesNotMatch(app,/place_clicks[\s\S]{0,140}localStorage/);
+  assert.match(privacy,/Cliques em links de estabelecimentos/);
+});
+
+test('curadoria de novas lojas é versionada e auditoria semanal não tem credenciais administrativas',()=>{
+  const seed=read('supabase/seeds/20261116_comercio_curado.sql');
+  const audit=read('scripts/audit-links.mjs');
+  const workflow=read('.github/workflows/audit-links.yml');
+  const ignore=read('.assetsignore');
+  assert.match(seed,/yes-feminina-masculina/);
+  assert.match(seed,/infomaxy-tecnologia/);
+  assert.match(seed,/joalheria-esmeralda/);
+  assert.match(seed,/hoffmann-spode/);
+  assert.match(seed,/on conflict \(id\) do nothing/);
+  assert.match(audit,/method:'HEAD'/);
+  assert.match(audit,/response\.ok/);
+  assert.doesNotMatch(audit,/sb_secret_/);
+  assert.match(workflow,/schedule:/);
+  assert.match(workflow,/contents: read/);
+  assert.match(ignore,/\/scripts\//);
+});
