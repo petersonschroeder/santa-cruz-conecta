@@ -157,7 +157,7 @@
       if(v('phone',30)) lines.push('📞 Telefone: '+v('phone',30));
       if(v('details',450)) lines.push('📝 Sobre o negócio: '+v('details',450));
       lines.push('','Tenho autorização para indicar estes dados. Entendo que a equipe avaliará o cadastro antes de publicá-lo.');
-      const url='https://wa.me/'+CONTACT_WHATSAPP+'?text='+encodeURIComponent(lines.join('\\n'));
+      const url='https://wa.me/'+CONTACT_WHATSAPP+'?text='+encodeURIComponent(lines.join('\n'));
       const link=document.createElement('a');
       link.href=url;
       link.target='_blank';
