@@ -1,0 +1,222 @@
+/* Santa Cruz Conecta — administração sem dependências; Auth + PostgREST + Storage. */
+(() => {
+'use strict';
+const config = window.SC_SUPABASE || {};
+const base = String(config.url || '').replace(/\/+$/, '');
+const key = String(config.publishableKey || '');
+const $ = id => document.getElementById(id);
+const SESSION_KEY = 'santacruzconecta:admin:v1';
+const cats = window.SC_CATEGORIES || {};
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let session = null, places = [], currentId = null, busy = false;
+const loadStored = () => { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } };
+const saveSession = value => { session = value; if (value) sessionStorage.setItem(SESSION_KEY, JSON.stringify(value)); else sessionStorage.removeItem(SESSION_KEY); };
+const message = (id,text,error=false) => { const el=$(id); el.textContent=text; el.classList.toggle('error',!!error); };
+const validHttps = text => { try { const u=new URL(text); return u.protocol==='https:' && !!u.hostname; } catch { return false; } };
+function logoFor(p) {
+  if (validHttps(p.logo_url)) return p.logo_url;
+  if (p.link_type === 'site' && validHttps(p.website_url)) {
+    try { return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(new URL(p.website_url).hostname) + '&sz=128'; } catch {}
+  }
+  return '/assets/brands/' + encodeURIComponent(p.id) + '.svg';
+}
+function fail(response, json) {
+  let detail = json?.msg || json?.error_description || json?.message || json?.details || json?.hint || json?.error || 'Erro de comunicação';
+  if (typeof detail !== 'string') detail = 'Erro de comunicação';
+  throw Error(detail + ' (HTTP ' + response.status + ')');
+}
+async function request(path, {method='GET', payload, token, headers={}, raw=false, allowRefresh=true} = {}) {
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(base) || !key.startsWith('sb_publishable_')) throw Error('Supabase não configurado.');
+  if (token !== false && session && allowRefresh) await ensureFresh();
+  const h = {'apikey':key, ...headers};
+  if (token !== false && session?.access_token) h.Authorization='Bearer ' + session.access_token;
+  if (payload !== undefined && !raw) h['Content-Type']='application/json';
+  const res = await fetch(base + path, {method, headers:h, body:payload===undefined?undefined:raw?payload:JSON.stringify(payload),cache:'no-store'});
+  const text = await res.text();
+  let result = null;
+  try { result = text?JSON.parse(text):null; } catch { result = text; }
+  if (!res.ok) fail(res,result);
+  return result;
+}
+async function ensureFresh() {
+  if (!session || !session.refresh_token) return;
+  if (session.expires_at && session.expires_at > Date.now()/1000+90) return;
+  const data=await request('/auth/v1/token?grant_type=refresh_token',{method:'POST',payload:{refresh_token:session.refresh_token},token:false,allowRefresh:false});
+  saveSession({...data, expires_at:Math.floor(Date.now()/1000)+(data.expires_in||3600)});
+}
+async function signIn(email,password) {
+  const data=await request('/auth/v1/token?grant_type=password',{method:'POST',payload:{email,password},token:false});
+  saveSession({...data,expires_at:Math.floor(Date.now()/1000)+(data.expires_in||3600)});
+}
+async function isAdmin() {
+  await ensureFresh();
+  const user=await request('/auth/v1/user');
+  if (!user?.id) return false;
+  const rows=await request('/rest/v1/admin_users?select=user_id&user_id=eq.'+encodeURIComponent(user.id)+'&limit=1');
+  if (!Array.isArray(rows) || !rows.length) return false;
+  $('account').textContent=user.email||'Administrador';
+  return true;
+}
+function showDashboard() { $('authView').hidden=true; $('panelView').hidden=false; $('logout').hidden=false; }
+function showLogin() { $('authView').hidden=false; $('panelView').hidden=true; $('logout').hidden=true; $('account').textContent=''; }
+async function activate() {
+  if (!(await isAdmin())) { saveSession(null); showLogin(); message('loginMessage','Esta conta ainda não tem permissão de administrador.',true); return; }
+  showDashboard(); await loadPlaces();
+}
+async function logout() {
+  try { if (session) await request('/auth/v1/logout',{method:'POST',allowRefresh:false}); } catch {}
+  saveSession(null); showLogin(); $('password').value=''; message('loginMessage','Sessão encerrada.');
+}
+async function loadPlaces() {
+  try {
+    const rows=await request('/rest/v1/places?select=*&order=name.asc&limit=2000');
+    places=Array.isArray(rows)?rows:[];
+    updateStats(); render();
+    message('panelMessage','');
+  } catch(e){message('panelMessage','Não foi possível carregar os dados: '+e.message,true);}
+}
+function updateStats(){
+  $('statTotal').textContent=places.length;
+  $('statLive').textContent=places.filter(p=>p.is_published).length;
+  $('statDraft').textContent=places.filter(p=>!p.is_published).length;
+  $('statCategories').textContent=new Set(places.map(p=>p.category)).size;
+}
+function render() {
+  const term=$('search').value.toLocaleLowerCase('pt-BR').trim();
+  const filter=$('statusFilter').value;
+  const filtered=places.filter(p=>(filter==='all'||(filter==='published')===!!p.is_published) &&
+    [p.name,p.category,p.address,p.subtitle].join(' ').toLocaleLowerCase('pt-BR').includes(term));
+  $('empty').hidden=filtered.length>0;
+  $('rows').innerHTML=filtered.map(p=>`<tr>
+    <td><div class="item"><img src="${esc(logoFor(p))}" data-fallback="/assets/brands/${encodeURIComponent(p.id)}.svg" alt="" loading="lazy"><span><strong>${esc(p.name)}</strong><span class="muted">${esc(p.id)}</span></span></div></td>
+    <td>${esc(cats[p.category]?.label||p.category)}</td>
+    <td><span class="status ${p.is_published?'live':''}">${p.is_published?'Publicado':'Rascunho'}</span></td>
+    <td>${esc(p.address||'—')}</td>
+    <td><div class="actions"><button type="button" data-edit="${esc(p.id)}">Editar</button><button type="button" data-toggle="${esc(p.id)}">${p.is_published?'Ocultar':'Publicar'}</button><button type="button" class="red" data-remove="${esc(p.id)}">Excluir</button></div></td>
+  </tr>`).join('');
+}
+const slug = value=>String(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,66);
+function openForm(id=null) {
+  currentId=id;
+  const p=places.find(x=>x.id===id);
+  $('placeForm').reset();
+  $('placeForm').elements.is_published.checked=true;
+  $('formTitle').textContent=p?'Editar '+p.name:'Novo estabelecimento';
+  if (p) {
+    for (const field of ['name','category','description','subtitle','website_url','link_type','address','phone','logo_url','featured','is_published']) {
+      const el=$('placeForm').elements.namedItem(field);
+      if (el) { if(el.type==='checkbox')el.checked=!!p[field]; else el.value=p[field]??''; }
+    }
+    $('placeForm').elements.tags.value=(p.tags||[]).join(', ');
+  }
+  $('logoFile').value='';
+  $('logoPreview').hidden=true;
+  if (p?.logo_url && validHttps(p.logo_url)) { $('logoPreview').src=p.logo_url; $('logoPreview').hidden=false; }
+  $('editDialog').showModal();
+}
+function closeForm() { if (!busy) $('editDialog').close(); }
+async function uploadLogo(file) {
+  const typeMap={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'};
+  if (!typeMap[file.type]) throw Error('Formato inválido. Use PNG, JPG ou WebP.');
+  if (file.size>2097152 || file.size<1) throw Error('A imagem deve ter no máximo 2 MB.');
+  const objectName=crypto.randomUUID()+'.'+typeMap[file.type];
+  await request('/storage/v1/object/brand-logos/'+objectName,{
+    method:'POST',payload:file,raw:true,headers:{'Content-Type':file.type,'x-upsert':'false'}
+  });
+  return base+'/storage/v1/object/public/brand-logos/'+objectName;
+}
+async function save(e) {
+  e.preventDefault(); if(busy) return;
+  const form=$('placeForm');
+  const v=name=>String(form.elements.namedItem(name)?.value||'').trim();
+  const name=v('name'), site=v('website_url'), logo=v('logo_url');
+  if (!name || !validHttps(site)) {alert('Informe um nome e um site HTTPS válido.');return;}
+  if (logo && !validHttps(logo)) {alert('A URL do logotipo precisa começar com HTTPS.');return;}
+  let id=currentId;
+  if (!id) {
+    const start=slug(name)||'local';
+    id=start;let n=2;
+    while(places.some(p=>p.id===id)) id=start+'-'+n++;
+  }
+  const payload={
+    id,name,category:v('category'),description:v('description'),subtitle:v('subtitle'),
+    website_url:site,link_type:v('link_type'),address:v('address'),phone:v('phone'),
+    tags:v('tags').split(',').map(s=>s.trim()).filter(Boolean).slice(0,25),
+    featured:form.elements.featured.checked,is_published:form.elements.is_published.checked,
+    logo_url:logo,mark:name.split(/\s+/).slice(0,2).map(s=>s[0]).join('').toUpperCase(),
+    source_url:site,updated_at:new Date().toISOString()
+  };
+  busy=true; $('saveButton').disabled=true; $('saveButton').textContent='Salvando...';
+  try {
+    if ($('logoFile').files[0]) payload.logo_url=await uploadLogo($('logoFile').files[0]);
+    if (currentId) {
+      await request('/rest/v1/places?id=eq.'+encodeURIComponent(id),{
+        method:'PATCH',payload,headers:{Prefer:'return=minimal'}
+      });
+    } else {
+      await request('/rest/v1/places',{method:'POST',payload,headers:{Prefer:'return=minimal'}});
+    }
+    $('editDialog').close(); await loadPlaces();
+    message('panelMessage','Estabelecimento salvo com sucesso!');
+  } catch(err){alert('Não foi possível salvar: '+err.message);}
+  finally{busy=false;$('saveButton').disabled=false;$('saveButton').textContent='Salvar estabelecimento';}
+}
+async function toggle(id) {
+  const p=places.find(x=>x.id===id);if(!p)return;
+  try {
+    await request('/rest/v1/places?id=eq.'+encodeURIComponent(id),{
+      method:'PATCH',payload:{is_published:!p.is_published,updated_at:new Date().toISOString()},
+      headers:{Prefer:'return=minimal'}
+    });
+    await loadPlaces();
+    message('panelMessage',p.is_published?'Local retirado da exibição pública.':'Local publicado com sucesso.');
+  } catch(err){message('panelMessage','Erro ao alterar publicação: '+err.message,true);}
+}
+async function remove(id) {
+  const p=places.find(x=>x.id===id);if(!p)return;
+  if (!confirm('Excluir permanentemente "'+p.name+'"? Esta ação não pode ser desfeita.')) return;
+  try {
+    await request('/rest/v1/places?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:{Prefer:'return=minimal'}});
+    await loadPlaces();message('panelMessage','Estabelecimento excluído.');
+  } catch(err){message('panelMessage','Erro ao excluir: '+err.message,true);}
+}
+function init() {
+  $('placeCategory').innerHTML=Object.entries(cats).map(([k,c])=>'<option value="'+esc(k)+'">'+esc(c.label)+'</option>').join('');
+  $('loginForm').addEventListener('submit',async e=>{
+    e.preventDefault();const btn=$('loginButton');btn.disabled=true;
+    message('loginMessage','Verificando suas credenciais...');
+    try { await signIn($('email').value.trim(),$('password').value);await activate(); }
+    catch(err) {saveSession(null);showLogin();message('loginMessage','Não foi possível entrar: '+err.message,true);}
+    finally {btn.disabled=false;}
+  });
+  $('logout').addEventListener('click',logout);
+  $('search').addEventListener('input',render); $('statusFilter').addEventListener('change',render);
+  $('reload').addEventListener('click',loadPlaces); $('newPlace').addEventListener('click',()=>openForm());
+  $('rows').addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.edit)openForm(b.dataset.edit);
+    else if(b.dataset.toggle)toggle(b.dataset.toggle);
+    else if(b.dataset.remove)remove(b.dataset.remove);
+  });
+  $('placeForm').addEventListener('submit',save);
+  $('closeDialog').addEventListener('click',closeForm);$('cancelDialog').addEventListener('click',closeForm);
+  $('editDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault();});
+  $('logoFile').addEventListener('change',e=>{
+    const file=e.target.files[0];if(!file)return;
+    if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>2097152){alert('Use PNG, JPG ou WebP de até 2 MB.');e.target.value='';return;}
+    const old=$('logoPreview').dataset.preview;if(old)URL.revokeObjectURL(old);
+    const u=URL.createObjectURL(file);$('logoPreview').src=u;$('logoPreview').dataset.preview=u;$('logoPreview').hidden=false;
+  });
+  document.addEventListener('error',e=>{
+    const img=e.target;
+    if(img instanceof HTMLImageElement&&img.dataset.fallback){
+      const fallback=img.dataset.fallback; delete img.dataset.fallback;
+      img.src=img.src.endsWith(fallback)?'/assets/logo.svg':fallback;
+    }
+  },true);
+  session=loadStored();
+  if(session)activate().catch(()=>{saveSession(null);showLogin();message('loginMessage','Sessão expirada. Entre novamente.',true);});
+  else showLogin();
+}
+init();
+})();
