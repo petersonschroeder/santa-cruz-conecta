@@ -39,6 +39,7 @@
 <div class="card stat"><strong id="statLive">—</strong><span>Publicados</span></div>
 <div class="card stat"><strong id="statDraft">—</strong><span>Rascunhos</span></div>
 <div class="card stat"><strong id="statCategories">—</strong><span>Categorias em uso</span></div>
+<div class="card stat stat-submissions"><strong id="statPending">—</strong><span>Solicitações aguardando análise</span></div>
 </div>
 <section class="card">
 <div><h2>Diretório de locais</h2><p class="muted">As mudanças salvas aparecem no site público, sem necessidade de novo deploy.</p></div>
@@ -46,6 +47,13 @@
 <div class="table-scroll"><table><thead><tr><th>Estabelecimento</th><th>Categoria</th><th>Status</th><th>Endereço</th><th>Ações</th></tr></thead><tbody id="rows"></tbody></table></div>
 <div id="empty" hidden>Nenhum estabelecimento encontrado.</div>
 <div class="notice" id="panelMessage" role="status" aria-live="polite"></div>
+</section>
+<section class="card requests-card" id="solicitacoes" aria-labelledby="requestsTitle">
+<div class="requests-head"><div><span class="eyebrow">PARTICIPAÇÃO DA COMUNIDADE</span><h2 id="requestsTitle">Solicitações de comércios <span class="pending-count" id="requestsCount">0 pendentes</span></h2><p class="muted">Confira os dados enviados e aprove, rejeite ou prepare o cadastro para publicação.</p></div><button id="reloadRequests" class="ghost" type="button">Atualizar pedidos</button></div>
+<div class="toolbar"><input id="requestSearch" type="search" placeholder="Buscar por comércio ou contato..." aria-label="Pesquisar solicitações"><select id="requestStatusFilter" aria-label="Filtrar solicitações"><option value="pending">Pendentes</option><option value="all">Todas</option><option value="approved">Aprovadas</option><option value="rejected">Rejeitadas</option></select></div>
+<div class="requests-list" id="requestRows" aria-live="polite"></div>
+<div id="requestsEmpty" class="request-empty" hidden>Nenhuma solicitação nesta categoria.</div>
+<div class="notice" id="requestsMessage" role="status" aria-live="polite"></div>
 </section>
 </section>
 <dialog class="modal" id="editDialog" aria-labelledby="formTitle">
