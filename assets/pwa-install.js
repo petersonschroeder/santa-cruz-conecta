@@ -24,6 +24,27 @@
     deferred=null;
     if(button){button.disabled=true;button.textContent='Aplicativo instalado ✓';}
     updateNotice('Santa Cruz Conecta foi adicionado ao seu dispositivo.');
+    // Métrica anônima: registrar apenas o evento de instalação, sem dados do dispositivo.
+    // Nem todo navegador emite "appinstalled"; o total é aproximado.
+    const config=window.SC_SUPABASE||{};
+    const base=String(config.url||'').replace(/\\/+$/,'');
+    const key=String(config.publishableKey||'');
+    if(/^https:\\/\\/[a-z0-9-]+\\.supabase\\.co$/.test(base)&&key.startsWith('sb_publishable_')){
+      const marker='scc:pwa-installed:v1';
+      let shouldRecord=true;
+      try {
+        if(localStorage.getItem(marker)==='1')shouldRecord=false;
+        else localStorage.setItem(marker,'1');
+      }catch{/* Instalação não depende de armazenamento local */}
+      if(shouldRecord){
+        const platform=/Android/i.test(navigator.userAgent)?'android':'desktop';
+        fetch(base+'/rest/v1/pwa_install_events',{
+          method:'POST',
+          headers:{apikey:key,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({platform}),keepalive:true
+        }).catch(()=>{/* A medição nunca deve impedir instalação */});
+      }
+    }
     window.dispatchEvent(new CustomEvent('scc:pwa-installed'));
   });
   if(button){
