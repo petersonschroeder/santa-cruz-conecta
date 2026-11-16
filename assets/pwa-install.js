@@ -17,8 +17,8 @@
   window.addEventListener('beforeinstallprompt',event=>{
     event.preventDefault();
     deferred=event;
-    if(button){button.disabled=false;button.hidden=false;button.textContent='Instalar aplicativo sem APK';}
-    updateNotice('Instale diretamente pelo navegador, sem baixar um arquivo APK.');
+    if(button){button.disabled=false;button.hidden=false;button.textContent='Instalar Santa Cruz Conecta';}
+    updateNotice('O Chrome identificou o Santa Cruz Conecta como aplicativo instalável, com nosso ícone próprio. Use a opção Instalar.');
   });
   window.addEventListener('appinstalled',()=>{
     deferred=null;
@@ -67,8 +67,8 @@
       }
       const isAndroid=/Android/i.test(navigator.userAgent);
       updateNotice(isAndroid ?
-        'No Chrome para Android, toque em ⋮ (menu) e escolha “Instalar app” ou “Adicionar à tela inicial”. Não é necessário baixar APK.' :
-        'Abra o menu do navegador e procure “Instalar aplicativo” ou “Adicionar à tela de início”.');
+        'No Chrome, abra ⋮ e escolha “Instalar app” ou “Instalar aplicativo”. Se aparecer apenas “Adicionar à tela inicial”, isso poderá criar um atalho com o símbolo do Chrome; não é o mesmo tipo de instalação. Confira se o Chrome está atualizado.' :
+        'No menu do navegador, escolha “Instalar aplicativo”. Um simples atalho pode continuar mostrando a marca do navegador.');
     });
   }
 })();
