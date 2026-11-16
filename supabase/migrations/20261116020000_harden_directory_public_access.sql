@@ -35,12 +35,12 @@ end $$;
 drop policy if exists "admins upload brand logos" on storage.objects;
 create policy "admins upload brand logos" on storage.objects for insert to authenticated
 with check (bucket_id = 'brand-logos' and
- name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(png|jpg|webp)$'
+ name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$'
  and exists (select 1 from public.admin_users a where a.user_id=(select auth.uid())));
 
 drop policy if exists "admins update brand logos" on storage.objects;
 create policy "admins update brand logos" on storage.objects for update to authenticated
 using (bucket_id='brand-logos' and exists (select 1 from public.admin_users a where a.user_id=(select auth.uid())))
 with check (bucket_id='brand-logos'
- and name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(png|jpg|webp)$'
+ and name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$'
  and exists (select 1 from public.admin_users a where a.user_id=(select auth.uid())));
