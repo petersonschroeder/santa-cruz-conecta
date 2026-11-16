@@ -87,3 +87,15 @@ Referências: [Supabase Production Checklist](https://supabase.com/docs/guides/s
 6. Testar conta sem permissão e leitura anônima: ambas devem receber acesso negado à fila.
 7. Apagar os dados de teste.
 
+
+
+## Curadoria comercial e contagem de cliques
+
+- O banco `place_clicks` usa RLS: visitantes podem apenas inserir o `place_id` de estabelecimento publicado. Não podem consultar, corrigir ou excluir eventos.
+- A visão `place_click_summary` usa `security_invoker=true`, está disponível apenas para sessões autenticadas e devolve linhas somente quando o usuário consta em `admin_users`. Não há `service_role` no JavaScript público.
+- Eventos gravam apenas código de estabelecimento e horário do clique. Não representam pessoas, visualizações únicas nem vendas. Deduplicação client-side é apenas aproximada. A função de guarda de inserções está no schema **não exposto** `app_private` e impõe limites de 30/minuto e 600/dia por loja.
+- URLs são conferidas manualmente pelo administrador ou pelo relatório da auditoria semanal passiva; resultados HTTP 403/429 podem ser causados por bloqueios e não provam indisponibilidade.
+- O relatório de links automatizado tem acesso somente de leitura às URLs e à API pública, usando chave `sb_publishable_`. Não possui credenciais privilegiadas ou permissão para publicar/ocultar estabelecimentos.
+- A política de privacidade informa a contagem agregada de cliques. Se o projeto crescer, criar política de retenção dos eventos e avaliar mecanismos anti-bot e relatórios escaláveis.
+- **Conferir em Supabase Auth → Security:** o Security Advisor detectou proteção contra senhas vazadas desabilitada. Avalie habilitá-la quando disponível no seu plano e mantenha MFA na conta administradora.
+
