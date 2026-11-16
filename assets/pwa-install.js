@@ -27,9 +27,9 @@
     // Métrica anônima: registrar apenas o evento de instalação, sem dados do dispositivo.
     // Nem todo navegador emite "appinstalled"; o total é aproximado.
     const config=window.SC_SUPABASE||{};
-    const base=String(config.url||'').replace(/\\/+$/,'');
+    const base=String(config.url||'').replace(/\/+$/,'');
     const key=String(config.publishableKey||'');
-    if(/^https:\\/\\/[a-z0-9-]+\\.supabase\\.co$/.test(base)&&key.startsWith('sb_publishable_')){
+    if(/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(base)&&key.startsWith('sb_publishable_')){
       const marker='scc:pwa-installed:v1';
       let shouldRecord=true;
       try {
