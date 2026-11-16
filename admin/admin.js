@@ -61,7 +61,7 @@ function showDashboard() { $('authView').hidden=true; $('panelView').hidden=fals
 function showLogin() { $('authView').hidden=false; $('panelView').hidden=true; $('logout').hidden=true; $('account').textContent=''; }
 async function activate() {
   if (!(await isAdmin())) { saveSession(null); showLogin(); message('loginMessage','Esta conta ainda não tem permissão de administrador.',true); return; }
-  showDashboard(); await Promise.all([loadPlaces(), loadSubmissions(), loadClicks(), loadAppDownloads()]);
+  showDashboard(); await Promise.all([loadPlaces(), loadSubmissions(), loadClicks(), loadAppDownloads(), loadReleaseDownloads()]);
 }
 async function logout() {
   try { if (session) await request('/auth/v1/logout',{method:'POST',allowRefresh:false}); } catch {}
@@ -165,6 +165,21 @@ async function reopenSubmission(id){
 }
 
 
+async function loadReleaseDownloads(){
+  try {
+    const response=await fetch('https://api.github.com/repos/petersonschroeder/santa-cruz-conecta/releases/tags/android-v1.0.0-beta.1',{
+      headers:{Accept:'application/vnd.github+json'},cache:'no-store'
+    });
+    if(!response.ok)throw Error('GitHub HTTP '+response.status);
+    const release=await response.json();
+    const apk=(release.assets||[]).find(a=>a.name==='SantaCruzConecta-beta.apk');
+    if(!apk)throw Error('Arquivo APK não encontrado no lançamento.');
+    $('appReleaseDownloads').textContent=Number(apk.download_count||0).toLocaleString('pt-BR');
+  }catch(err){
+    $('appReleaseDownloads').textContent='—';
+    message('appDownloadMessage','O contador do GitHub não respondeu: '+err.message,true);
+  }
+}
 async function loadAppDownloads(){
   try {
     const rows=await request('/rest/v1/android_download_summary?select=initiated_total,initiated_7d,initiated_30d,last_initiated_at');
@@ -432,7 +447,7 @@ function init() {
   });
   $('reload').addEventListener('click',loadPlaces); $('newPlace').addEventListener('click',()=>openForm());
   $('reloadRequests').addEventListener('click',loadSubmissions);
-  $('reloadDownloads').addEventListener('click',loadAppDownloads);
+  $('reloadDownloads').addEventListener('click',()=>Promise.all([loadAppDownloads(),loadReleaseDownloads()]));
   $('requestSearch').addEventListener('input',renderSubmissions);
   $('requestStatusFilter').addEventListener('change',renderSubmissions);
   $('requestRows').addEventListener('click',e=>{
