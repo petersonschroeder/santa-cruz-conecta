@@ -141,7 +141,7 @@ test('dashboard reúne relatórios de cliques e curadoria sem revelar dados para
   const throttling=read('supabase/migrations/20261116042000_click_metrics_public_rate_limits.sql');
   assert.match(schema,/enable row level security/);
   assert.match(schema,/grant insert\(place_id\) on public\.place_clicks to anon/);
-  assert.match(schema,/with\(security_invoker = true\)/);
+  assert.match(schema,/with\s*\(\s*security_invoker\s*=\s*true\s*\)/);
   assert.match(summary,/from public\.admin_users/);
   assert.match(summary,/auth\.uid\(\)/);
   assert.match(throttling,/app_private\.limit_place_clicks/);
@@ -169,7 +169,7 @@ test('curadoria de novas lojas é versionada e auditoria semanal não tem creden
   assert.match(seed,/hoffmann-spode/);
   assert.match(seed,/on conflict \(id\) do nothing/);
   assert.match(audit,/method:'HEAD'/);
-  assert.match(audit,/response\.ok/);
+  assert.match(audit,/request\.ok/);
   assert.doesNotMatch(audit,/sb_secret_/);
   assert.match(workflow,/schedule:/);
   assert.match(workflow,/contents: read/);
