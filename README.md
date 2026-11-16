@@ -1,109 +1,101 @@
 # Santa Cruz Conecta
 
-Portal-guia independente de **Santa Cruz do Sul (RS)**, responsivo, sem dependências de compilação e com links externos pesquisados em novembro de 2026.
+Guia digital independente de **Santa Cruz do Sul (RS)**. Reúne estabelecimentos, turismo, notícias, gastronomia, hotéis, educação e serviços em um portal responsivo, com filtros, favoritos e links externos.
 
-## Como executar
+**Produção:** https://santa-cruz-conecta.pepirocha123.workers.dev/
 
-**Mais simples:** abra `index.html` no Chrome, Firefox, Edge ou Safari. A busca, os filtros, as categorias e os favoritos já funcionam sem servidor.
+**Admin (requer conta autorizada):** https://santa-cruz-conecta.pepirocha123.workers.dev/admin/
 
-**Servidor local (opcional):** dentro da pasta do projeto, rode:
+**Supabase:** projeto `vlsntcyvfdvaynxxstor`, São Paulo (`sa-east-1`).
+
+## Arquitetura
+
+```text
+Cloudflare Workers + Static Assets
+  ├─ /index.html           portal (11 categorias)
+  ├─ /assets/             CSS, JavaScript, logo e ícones
+  └─ /admin/              painel com Supabase Auth
+              │
+              ▼
+Supabase PostgreSQL ─ tabela places, RLS, admin_users
+Supabase Storage    ─ bucket brand-logos
+Supabase Auth       ─ contas autorizadas
+```
+
+A tabela `places` contém 37 estabelecimentos iniciais publicados. O catálogo público é carregado **diretamente do Supabase**, sem uma cópia estática de registros removidos. Caso o banco não responda, o portal informa indisponibilidade do catálogo em vez de reexibir locais despublicados.
+
+- **Visitante:** consulta somente estabelecimentos publicados, com links HTTPS.
+- **Usuário autenticado comum:** também só consulta publicados.
+- **Administrador:** após inclusão explícita na tabela `admin_users`, pode cadastrar, alterar, excluir, destacar e publicar/despublicar locais pelo painel.
+- **Imagens:** o painel permite enviar PNG, JPG e WebP (máximo 2 MB). Quando não há logotipo enviado, o portal tenta buscar o favicon do domínio e usa monograma original como fallback.
+
+## Ativar o primeiro administrador
+
+Antes de fazer login em `/admin/`, é preciso **criar um usuário Auth** e **autorizar seu UID na tabela admin_users**. Veja o procedimento documentado em [SECURITY.md](SECURITY.md#habilitar-primeiro-administrador-ação-obrigatória).
+
+Não crie o primeiro usuário diretamente em `auth.users` com SQL e não cole senhas, tokens ou chaves privadas em conversas.
+
+## Desenvolvimento local
+
+É um projeto estático, sem dependências de build; use um servidor para testar o Supabase no navegador:
 
 ```bash
 python -m http.server 8000
 ```
 
-Depois acesse `http://localhost:8000`.
+Depois acesse `http://localhost:8000/`. Não é necessário executar Node para servir o site; o Node.js é utilizado apenas nos testes de qualidade.
 
-## Estrutura
+```bash
+node --test tests/security.test.mjs
+```
+
+## Publicação Cloudflare
+
+O repositório possui `wrangler.jsonc` com o Worker `santa-cruz-conecta`, usando `assets.directory = "."`. O deploy existente é feito pela integração GitHub/Cloudflare com `npx wrangler deploy`. A cada commit na branch `main`, o serviço conectado pode disparar uma nova implantação.
+
+- `_headers` define **CSP**, HSTS, `nosniff`, proteção contra iframe/clickjacking e outras políticas.
+- `.assetsignore` exclui migrações SQL, docs, arquivos de trabalho e testes do pacote de assets públicos.
+- `robots.txt` e cabeçalhos `/admin/*` evitam indexação do painel (isso não substitui login).
+- `.github/workflows/security.yml` realiza testes automáticos em pushes e pull requests.
+
+**Verifique sempre o último deploy da Cloudflare** e o navegador em `/admin/`. O GitHub Actions testa o código, mas não comprova sozinho que um deploy Cloudflare terminou.
+
+## Estrutura resumida
 
 ```text
-santa-cruz-conecta/
-├── index.html                  # Página, SEO, navegação, semântica e seções
-├── assets/
-│   ├── styles.css              # Design responsivo desktop/tablet/celular
-│   ├── app.js                  # Busca, filtros, favoritos e renderização
-│   ├── data.js                 # Catálogo editável e categorias
-│   ├── logo.svg                # Identidade visual original do portal
-│   ├── catedral.svg            # Ilustração autoral da Catedral
-│   ├── tunel.svg               # Ilustração autoral do Túnel Verde
-│   └── brands/                 # 37 ícones/monogramas editoriais originais
-└── README.md
+index.html
+_headers
+.assetsignore
+wrangler.jsonc
+robots.txt
+assets/
+  app.js                 interface e navegação
+  styles.css             design responsivo
+  data.js                categorias (sem cópia estática dos estabelecimentos)
+  supabase-config.js     URL + chave publishable, dados públicos
+  supabase-loader.js     consulta de places com leitura pública
+  brands/*.svg           monogramas editoriais e fallback de imagem
+admin/
+  index.html
+  admin.css
+  admin.js
+supabase/
+  migrations/*.sql
+.github/workflows/security.yml
+tests/security.test.mjs
+SECURITY.md
 ```
 
-### Recursos já funcionais
+## Segurança e permissões
 
-- Layout fluido para celular, tablet e desktop.
-- Pesquisa com normalização de acentos; filtra nome, descrição, endereço e palavras-chave.
-- Filtros por **11 categorias** e ordenação.
-- Destaques editoriais, links externos e caminhos para visualizar locais no Google Maps quando um endereço está disponível.
-- Favoritos no navegador (`localStorage`) e filtro de favoritos.
-- Navegação por teclado, links externos seguros (`rel="noopener noreferrer"`), URLs HTTPS e `aria-labels`.
-- Catálogo com **37 entradas** selecionadas; indica quando um link é de um **guia público**, em vez de fingir ser site próprio do estabelecimento.
-- Ilustrações e identidade visual original; sem dependência de banco de dados, sem cookies analíticos.
+As autorizações de escrita são validadas pelo PostgreSQL com **Row Level Security (RLS)**; esconder o botão no frontend não confere segurança. O browser recebe exclusivamente a chave pública `sb_publishable_...`. **Nunca publicar** `sb_secret_...`, `service_role` ou senhas.
 
-### Cadastrando um novo local
+Consulte [SECURITY.md](SECURITY.md) para recomendações de Auth, testes, limites da auditoria, inspeção dos headers no Cloudflare e procedimento para revogar administradores.
 
-Edite `assets/data.js` e acrescente um objeto ao array `window.SC_PLACES`. Campos essenciais:
+## Curadoria e propriedade intelectual
 
-```js
-{
-  "id": "meu-negocio",
-  "name": "Meu Negócio",
-  "category": "restaurantes",
-  "description": "Descrição breve, informativa e verificada.",
-  "url": "https://www.exemplo.com.br/",
-  "linkType": "site", // ou "guia" / "canais"
-  "featured": false,
-  "subtitle": "Restaurante • Santa Cruz do Sul",
-  "address": "Rua Exemplo, 100, Centro",
-  "phone": "",
-  "tags": ["almoço", "jantar"],
-  "mark": "MN"
-}
-```
+O projeto começou com 37 locais em 11 categorias, com dados pesquisados em novembro de 2026. Não constitui uma lista completa ou continuamente atualizada de empresas do município. Muitos links levam a guias públicos, não a sites oficiais; revise URLs e endereços com frequência.
 
-Crie também `assets/brands/meu-negocio.svg`; use `assets/brands/miller.svg` como base e personalize as letras. Para adicionar categoria, acrescente uma chave em `window.SC_CATEGORIES` (em `data.js`) e seu ícone em `iconPaths` (em `app.js`).
+Os monogramas locais são editoriais, **não marcas oficiais**. Para utilizar logotipos completos das empresas, dê preferência a imagens autorizadas pelo titular ou a favicons disponibilizados pelos próprios sites e respeite direitos de uso e atribuição.
 
-### Cloudflare Pages + Supabase (recomendado)
-
-**Cloudflare Pages**: importe `petersonschroeder/santa-cruz-conecta`, selecione branch `main` e use **Framework preset: None**, **Build command: em branco**, **Build output directory: `/`** (raiz do repositório). O arquivo `index.html` está na raiz; não precisa de Node ou build. A cada commit na `main`, o Pages publica novamente.
-
-**Supabase**: use um projeto dedicado e siga o [guia do banco](supabase/README.md). Os arquivos públicos `assets/supabase-config.js` e `assets/supabase-loader.js` permitem ativar o banco sem alterar o layout. Enquanto não configurar a chave pública, o diretório usa os 37 registros locais.
-
-Não insira no GitHub chaves secretas, `service_role`, senhas ou tokens administrativos. As políticas RLS permitem somente consulta pública dos locais publicados.
-
-### Publicar na internet
-
-**GitHub Pages:** crie um repositório, envie o conteúdo da pasta (com `index.html` na raiz), vá em **Settings → Pages → Build and deployment → Deploy from a branch** e selecione `main`/`root`.
-
-**Netlify:** arraste a pasta para a área de deploy do Netlify; não precisa rodar `npm install`.
-
-**Vercel:** importe o repositório como projeto estático e use os padrões da plataforma, sem `build`.
-
-## Limitações e cuidados
-
-Esta é uma **primeira curadoria, não o cadastro completo de todos os negócios da cidade**. A presença de redes nacionais indica unidades em Santa Cruz do Sul, não que a sede nacional esteja na cidade. Links e páginas externas podem mudar a qualquer momento; revalide periodicamente. Nem todos os estabelecimentos têm um site próprio: nesses casos, o botão direciona para um guia público ou canais oficiais, assim identificado.
-
-Os mini-logotipos criados aqui são **monogramas editoriais originais** para identificar os cartões; **não são logotipos oficiais** nem implicam parceria com as marcas. Para exibir logotipos oficiais em uma versão comercial, use ativos autorizados pelos titulares.
-
-Não coletamos dados pessoais ou favoritos em servidor: as preferências ficam no navegador do visitante.
-
-## Evolução para uma plataforma maior
-
-1. Migrar catálogo para banco de dados (Supabase/PostgreSQL) e criar painel de aprovação editorial.
-2. Cadastrar campos de geolocalização, contatos, horário, acessibilidade e proveniência verificáveis.
-3. Desenvolver formulários de indicação e correção com moderação e política de privacidade.
-4. Implementar checagem agendada de links quebrados e datas de última verificação.
-5. Adicionar mapa com dados geocodificados, páginas de detalhes, sitemap dinâmico e busca de produção.
-6. Definir regras de destaque/monetização identificando claramente conteúdos patrocinados.
-
-## Fontes de referência principais
-
-- Prefeitura e Turismo: https://www.santacruz.rs.gov.br/servicos/servicos-para-o-turista
-- Guia estadual: https://www.turismo.rs.gov.br/turismo/municipio/visitar/328
-- Guia gastronômico estadual: https://www.turismo.rs.gov.br/turismo/municipio/comer/328
-- Rodoviária: https://rodoviariasantacruz.com.br/
-- Oktoberfest: https://www.oktober.com.br/
-- Comércio e outros setores: sites listados no próprio catálogo em `assets/data.js`.
-
-**Data da curadoria inicial:** 15 de novembro de 2026.
+Referências da curadoria: [Prefeitura](https://www.santacruz.rs.gov.br/servicos/servicos-para-o-turista), [Turismo RS](https://www.turismo.rs.gov.br/turismo/municipio/visitar/328), [Oktoberfest](https://www.oktober.com.br/), [Rodoviária](https://rodoviariasantacruz.com.br/).
