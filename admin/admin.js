@@ -61,7 +61,7 @@ function showDashboard() { $('authView').hidden=true; $('panelView').hidden=fals
 function showLogin() { $('authView').hidden=false; $('panelView').hidden=true; $('logout').hidden=true; $('account').textContent=''; }
 async function activate() {
   if (!(await isAdmin())) { saveSession(null); showLogin(); message('loginMessage','Esta conta ainda não tem permissão de administrador.',true); return; }
-  showDashboard(); await Promise.all([loadPlaces(), loadSubmissions(), loadClicks(), loadAppDownloads(), loadReleaseDownloads()]);
+  showDashboard(); await Promise.all([loadPlaces(), loadSubmissions(), loadClicks(), loadAppDownloads(), loadReleaseDownloads(), loadPwaInstallStats()]);
 }
 async function logout() {
   try { if (session) await request('/auth/v1/logout',{method:'POST',allowRefresh:false}); } catch {}
@@ -180,6 +180,23 @@ async function loadReleaseDownloads(){
     message('appDownloadMessage','O contador do GitHub não respondeu: '+err.message,true);
   }
 }
+async function loadPwaInstallStats(){
+  try {
+    const rows=await request('/rest/v1/pwa_install_summary?select=installs_total,installs_7d,installs_30d,android_total,last_installed_at');
+    const d=Array.isArray(rows)&&rows.length?rows[0]:null;
+    if(!d)throw Error('Resumo de instalações indisponível.');
+    const fmt=value=>Number(value||0).toLocaleString('pt-BR');
+    $('pwaInstallsTotal').textContent=fmt(d.installs_total);
+    $('pwaInstalls7').textContent=fmt(d.installs_7d);
+    $('pwaInstalls30').textContent=fmt(d.installs_30d);
+    $('pwaInstallsAndroid').textContent=fmt(d.android_total);
+    message('pwaInstallMessage','');
+  }catch(err){
+    for(const id of ['pwaInstallsTotal','pwaInstalls7','pwaInstalls30','pwaInstallsAndroid'])$(id).textContent='—';
+    message('pwaInstallMessage','Não foi possível carregar as instalações: '+err.message,true);
+  }
+}
+
 async function loadAppDownloads(){
   try {
     const rows=await request('/rest/v1/android_download_summary?select=initiated_total,initiated_7d,initiated_30d,last_initiated_at');
@@ -447,7 +464,7 @@ function init() {
   });
   $('reload').addEventListener('click',loadPlaces); $('newPlace').addEventListener('click',()=>openForm());
   $('reloadRequests').addEventListener('click',loadSubmissions);
-  $('reloadDownloads').addEventListener('click',()=>Promise.all([loadAppDownloads(),loadReleaseDownloads()]));
+  $('reloadDownloads').addEventListener('click',()=>Promise.all([loadAppDownloads(),loadReleaseDownloads(),loadPwaInstallStats()]));
   $('requestSearch').addEventListener('input',renderSubmissions);
   $('requestStatusFilter').addEventListener('change',renderSubmissions);
   $('requestRows').addEventListener('click',e=>{
