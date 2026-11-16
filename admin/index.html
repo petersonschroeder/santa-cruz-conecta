@@ -58,7 +58,18 @@
     <div class="app-kpi"><span>Últimos 30 dias</span><strong id="appDownloads30">—</strong></div>
     <div class="app-kpi"><span>Último pedido de download</span><strong id="appDownloadsLast" class="app-date">—</strong></div>
   </div>
-  <div class="app-actions"><a href="/baixar-app.html" class="primary" target="_blank" rel="noopener noreferrer">Abrir página de download ↗</a><a href="https://github.com/petersonschroeder/santa-cruz-conecta/releases/tag/android-v1.0.0-beta.1" target="_blank" rel="noopener noreferrer">Ver versão beta no GitHub ↗</a></div>
+  <div class="pwa-section">
+    <div class="pwa-heading"><div><span class="eyebrow">INSTALAÇÃO SEM APK</span><h3>Instalações pelo navegador</h3></div><span class="muted">Contadas quando o Chrome notifica a instalação (estimativa)</span></div>
+    <div class="app-admin-grid">
+      <div class="app-kpi"><span>Instalações detectadas</span><strong id="pwaInstallsTotal">—</strong></div>
+      <div class="app-kpi"><span>Últimos 7 dias</span><strong id="pwaInstalls7">—</strong></div>
+      <div class="app-kpi"><span>Últimos 30 dias</span><strong id="pwaInstalls30">—</strong></div>
+      <div class="app-kpi"><span>Detectadas no Android</span><strong id="pwaInstallsAndroid">—</strong></div>
+    </div>
+    <p class="hint">Números aproximados: a instalação manual pela tela inicial nem sempre é informada pelo navegador. Nenhum dado pessoal é registrado.</p>
+    <div id="pwaInstallMessage" class="notice" role="status" aria-live="polite"></div>
+  </div>
+  <div class="app-actions"><a href="/baixar-app.html" class="primary" target="_blank" rel="noopener noreferrer">Abrir página de instalação ↗</a><a href="https://github.com/petersonschroeder/santa-cruz-conecta/releases/tag/android-v1.0.0-beta.1" target="_blank" rel="noopener noreferrer">Ver versão beta no GitHub ↗</a></div>
   <div id="appDownloadMessage" class="notice" role="status" aria-live="polite"></div>
 </section>
 <section class="card directory-admin-card" id="catalogoAdmin">
