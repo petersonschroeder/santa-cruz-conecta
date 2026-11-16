@@ -56,9 +56,9 @@
   function placeCard(p){
     const isGuide=p.linkType==='guia';
     const map=p.address?`<a href="${escapeHtml(getMapUrl(p))}" class="map-link" target="_blank" rel="noopener noreferrer" aria-label="Ver ${escapeHtml(p.name)} no mapa">Ver no mapa ↗</a>`:'';
-    return `<article class="place-card"><div class="place-top"><img class="place-mark" src="${escapeHtml(getMark(p))}" data-fallback="${escapeHtml(getFallbackMark(p))}" alt="Ícone de ${escapeHtml(p.name)}" width="51" height="51" loading="lazy"><div class="place-name-block"><div class="place-category">${escapeHtml(categoryLabel(p.category))}</div><h3>${escapeHtml(p.name)}</h3></div>${favoriteButton(p)}</div><p class="place-description">${escapeHtml(p.description)}</p><div class="place-bottom">${p.address?`<span class="place-address" title="${escapeHtml(p.address)}">⌖ ${escapeHtml(p.address)}</span>`:`<span class="place-address">${escapeHtml(p.subtitle)}</span>`}<div class="place-actions"><a href="${escapeHtml(safeUrl(p.url))}" class="place-link" target="_blank" rel="noopener noreferrer" aria-label="${linkTitle(p)}: ${escapeHtml(p.name)} (abre em nova guia)">${linkTitle(p)} <span aria-hidden="true">↗</span></a>${map||`<span class="place-type">${isGuide?'Guia público':'Link externo'}</span>`}</div></div></article>`;
+    return `<article class="place-card"><div class="place-top"><img class="place-mark" src="${escapeHtml(getMark(p))}" data-fallback="${escapeHtml(getFallbackMark(p))}" alt="Ícone de ${escapeHtml(p.name)}" width="51" height="51" loading="lazy"><div class="place-name-block"><div class="place-category">${escapeHtml(categoryLabel(p.category))}</div><h3>${escapeHtml(p.name)}</h3></div>${favoriteButton(p)}</div><p class="place-description">${escapeHtml(p.description)}</p><div class="place-bottom">${p.address?`<span class="place-address" title="${escapeHtml(p.address)}">⌖ ${escapeHtml(p.address)}</span>`:`<span class="place-address">${escapeHtml(p.subtitle)}</span>`}<div class="place-actions"><a href="${escapeHtml(safeUrl(p.url))}" class="place-link" data-place-visit="${escapeHtml(p.id)}" target="_blank" rel="noopener noreferrer" aria-label="${linkTitle(p)}: ${escapeHtml(p.name)} (abre em nova guia)">${linkTitle(p)} <span aria-hidden="true">↗</span></a>${map||`<span class="place-type">${isGuide?'Guia público':'Link externo'}</span>`}</div></div></article>`;
   }
-  function featuredCard(p){return `<a href="${escapeHtml(safeUrl(p.url))}" class="feature-card" target="_blank" rel="noopener noreferrer" aria-label="Conhecer ${escapeHtml(p.name)} (abre em nova guia)"><div class="feature-top"><img class="place-mark" src="${escapeHtml(getMark(p))}" data-fallback="${escapeHtml(getFallbackMark(p))}" alt="" loading="lazy" width="56" height="56"><span class="feature-arrow" aria-hidden="true">↗</span></div><span class="feature-cat">${escapeHtml(categoryLabel(p.category))}</span><h3>${escapeHtml(p.name)}</h3><p>${escapeHtml(p.subtitle)}</p></a>`}
+  function featuredCard(p){return `<a href="${escapeHtml(safeUrl(p.url))}" class="feature-card" data-place-visit="${escapeHtml(p.id)}" target="_blank" rel="noopener noreferrer" aria-label="Conhecer ${escapeHtml(p.name)} (abre em nova guia)"><div class="feature-top"><img class="place-mark" src="${escapeHtml(getMark(p))}" data-fallback="${escapeHtml(getFallbackMark(p))}" alt="" loading="lazy" width="56" height="56"><span class="feature-arrow" aria-hidden="true">↗</span></div><span class="feature-cat">${escapeHtml(categoryLabel(p.category))}</span><h3>${escapeHtml(p.name)}</h3><p>${escapeHtml(p.subtitle)}</p></a>`}
   function renderCategories(){const grid=$('categoryGrid');grid.innerHTML=Object.entries(categories).map(([id,c])=>`<button type="button" class="category-tile" data-category="${escapeHtml(id)}" aria-label="Ver ${escapeHtml(c.label)}"><span class="category-symbol" style="--tint:${escapeHtml(c.tint)}">${icon(c.icon)}</span><strong>${escapeHtml(c.label)}</strong><span>${escapeHtml(c.description)}</span></button>`).join('')}
   function renderChips(){const counts=Object.fromEntries(Object.keys(categories).map(k=>[k,places.filter(p=>p.category===k).length]));const list=[['todos','Todos',places.length],...Object.entries(categories).map(([k,v])=>[k,v.label,counts[k]])];$('filterChips').innerHTML=list.map(([id,label,count])=>`<button type="button" class="filter-chip" data-filter="${id}" aria-pressed="${id===state.category}">${escapeHtml(label)} <span class="chip-count">${count}</span></button>`).join('')}
   function updateBadges(){const n=favorites.size;$('favoriteCount').textContent=n;$('favoriteCount').hidden=!n;$('favoritesFilter').setAttribute('aria-pressed',String(state.favoritesOnly));$('favoritesFilter').setAttribute('aria-label',state.favoritesOnly?'Exibindo favoritos; clique para mostrar todos':'Mostrar somente favoritos');$('clearSearch').hidden=!state.search}
@@ -88,6 +88,31 @@
   }, true);
   renderCategories();
   $('featuredGrid').innerHTML=places.filter(p=>p.featured).slice(0,6).map(featuredCard).join('');
+
+  // Mede somente cliques nos links externos, sem identificar visitantes.
+  // Deduplicação local de 10 minutos reduz contagens acidentais, não é proteção antibot.
+  document.addEventListener('click', event => {
+    const link=event.target.closest('a[data-place-visit]');
+    if(!link)return;
+    const placeId=link.dataset.placeVisit||'';
+    if(!places.some(p=>p.id===placeId && /^https:\/\//i.test(p.url)))return;
+    const config=window.SC_SUPABASE||{};
+    const base=String(config.url||'').replace(/\/+$/,'');
+    const pubKey=String(config.publishableKey||'');
+    if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(base)||!pubKey.startsWith('sb_publishable_'))return;
+    const dedupKey='scc:visit:'+placeId;
+    try {
+      const previous=Number(sessionStorage.getItem(dedupKey)||0);
+      if(Date.now()-previous<600000)return;
+      sessionStorage.setItem(dedupKey,String(Date.now()));
+    } catch { /* Não bloquear a navegação se armazenamento indisponível */ }
+    fetch(base+'/rest/v1/place_clicks',{
+      method:'POST',
+      headers:{'apikey':pubKey,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({place_id:placeId}),
+      keepalive:true
+    }).catch(()=>{ /* Métrica auxiliar nunca impede a abertura do site externo */ });
+  });
   $('year').textContent=new Date().getFullYear();
   render();
   $('categoryGrid').addEventListener('click',e=>{const btn=e.target.closest('[data-category]');if(btn)selectCategory(btn.dataset.category)});
