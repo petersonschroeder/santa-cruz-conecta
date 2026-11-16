@@ -1,0 +1,21 @@
+name: Segurança e integridade
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout (commit fixo)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Conferir versão do Node.js
+        run: node --version
+      - name: Verificação estática e regressões de segurança
+        run: node --test tests/security.test.mjs
