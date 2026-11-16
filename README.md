@@ -110,3 +110,23 @@ O frontend foi refinado para computador e celular com maior contraste, novos est
 - **Fluxo de envio:** o botão abre o WhatsApp com uma mensagem preenchida. A pessoa precisa confirmar o envio no WhatsApp. O formulário **não** grava pedidos automaticamente no Supabase e **não** publica estabelecimento sem revisão editorial.
 - **Privacidade:** sem cadastro público no Supabase; as informações preenchidas são processadas apenas no navegador até o usuário decidir enviar a mensagem pelo WhatsApp.
 - **Manutenção do contato:** atualizar o telefone nos links de `index.html` e na constante `CONTACT_WHATSAPP` de `assets/app.js`, e executar `node --test tests/security.test.mjs`.
+
+
+## Solicitações de novos comércios (fila de moderação)
+
+A seção **Cadastre seu comércio** permite enviar o pedido diretamente pelo formulário, sem precisar abrir o WhatsApp. O WhatsApp continua disponível como alternativa.
+
+**Fluxo:**
+1. Visitante informa nome do negócio, categoria, endereço, nome e e-mail de contato. Pode incluir site, telefone comercial e descrição.
+2. Após confirmar a autorização de uso dos dados, o navegador faz POST na tabela privada `business_submissions` com a chave pública Supabase e `Prefer: return=minimal`. O visitante não recebe uma cópia dos dados alheios.
+3. O novo pedido entra como **pending**. Não é criado um estabelecimento automaticamente.
+4. Em `/admin/`, o responsável filtra a fila de **Solicitações de comércios**, examina os dados e pode **Revisar e aprovar**, **Rejeitar** ou **Reabrir** um pedido.
+5. Aprovar abre o editor e requer uma URL HTTPS válida; o RPC `approve_business_submission` cria o local e marca o pedido aprovado de forma atômica. A opção **Publicar no portal** determina se o local aparecerá imediatamente ou ficará como rascunho.
+6. Rejeições permanecem na fila de histórico e podem ser reabertas.
+
+**Segurança:** RLS impede que visitantes consultem a fila ou alterem solicitações; apenas admins explicitamente incluídos em `admin_users` visualizam os dados. O banco exige os campos permitidos, bloqueia pendências duplicadas por e-mail + negócio e limita o envio a três solicitações por e-mail a cada 24 horas. Essas medidas são proteção básica contra spam; para tráfego público maior, ativar Turnstile e limites de WAF na Cloudflare.
+
+**Privacidade:** [Política de Privacidade](/privacidade.html) acessível no site; dados pessoais do solicitante não são copiados para os cartões públicos. Remoções podem ser realizadas via SQL Editor ou painel administrativo; não existe rotina automática de retenção nesta versão.
+
+**Ativação da fila:** o banco já contém a migração `business_submission_review_queue`; código-fonte em `supabase/migrations/20261116030000_business_submission_review_queue.sql`. O painel exige um usuário Auth autorizado conforme [SECURITY.md](SECURITY.md).
+
