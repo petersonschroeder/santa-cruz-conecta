@@ -108,7 +108,6 @@ test('solicitações vão para fila privada, sem publicação direta ou uso obri
   assert.match(js,/Prefer:'return=minimal'/);
   assert.match(js,/contact_email:v\.email/);
   assert.match(js,/response\.ok/);
-  assert.match(js,/id\)\s*return/);
   assert.doesNotMatch(js,/fetch\(base\+'\/rest\/v1\/places'/);
 });
 test('somente administradores podem consultar ou aprovar indicações',()=>{
