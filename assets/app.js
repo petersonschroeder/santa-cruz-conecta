@@ -64,7 +64,7 @@
   function render(){
     const filtered=matching(),visible=filtered.slice(0,state.limit);
     $('directoryGrid').innerHTML=visible.map(placeCard).join('');
-    $('resultsInfo').innerHTML=filtered.length?`Exibindo <strong>${visible.length}</strong> de <strong>${filtered.length}</strong> ${filtered.length===1?'local':'locais'}`:'Nenhum local encontrado';
+    $('resultsInfo').innerHTML=window.SC_DATA_ERROR?'Catálogo temporariamente indisponível. Tente atualizar a página.':(filtered.length?`Exibindo <strong>${visible.length}</strong> de <strong>${filtered.length}</strong> ${filtered.length===1?'local':'locais'}`:'Nenhum local encontrado');
     $('emptyState').hidden=Boolean(filtered.length);
     $('loadMoreWrap').hidden=filtered.length<=state.limit;
     $('totalCount').textContent=`${places.length} lugares para descobrir`;
@@ -75,7 +75,6 @@
   function selectCategory(id,scroll=true){state.category=Object.hasOwn(categories,id)?id:'todos';state.limit=9;state.favoritesOnly=false;render();if(scroll)$('catalogo').scrollIntoView({behavior:'smooth',block:'start'})}
   function setSearch(term,scroll=false){state.search=term;$('directoryInput').value=term;$('heroInput').value=term;state.limit=9;render();if(scroll)$('catalogo').scrollIntoView({behavior:'smooth',block:'start'})}
   function reset(){state.category='todos';state.search='';state.favoritesOnly=false;state.sort='recommended';state.limit=9;$('heroInput').value='';$('directoryInput').value='';$('sortBy').value='recommended';render()}
-  if(!places.length){$('resultsInfo').textContent='Não foi possível carregar o catálogo.';return}
   document.addEventListener('error', e => {
     const image=e.target;
     if(!(image instanceof HTMLImageElement) || !image.classList.contains('place-mark')) return;
