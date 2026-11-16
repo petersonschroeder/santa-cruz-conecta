@@ -22,3 +22,6 @@ wrangler.toml
 package.json
 package-lock.json
 node_modules/
+
+# Projeto Android compilável (não publicar como assets web)
+/android/
