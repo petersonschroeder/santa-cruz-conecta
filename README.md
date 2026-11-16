@@ -99,3 +99,14 @@ O projeto começou com 37 locais em 11 categorias, com dados pesquisados em nove
 Os monogramas locais são editoriais, **não marcas oficiais**. Para utilizar logotipos completos das empresas, dê preferência a imagens autorizadas pelo titular ou a favicons disponibilizados pelos próprios sites e respeite direitos de uso e atribuição.
 
 Referências da curadoria: [Prefeitura](https://www.santacruz.rs.gov.br/servicos/servicos-para-o-turista), [Turismo RS](https://www.turismo.rs.gov.br/turismo/municipio/visitar/328), [Oktoberfest](https://www.oktober.com.br/), [Rodoviária](https://rodoviariasantacruz.com.br/).
+
+## Novo visual e atendimento (novembro de 2026)
+
+O frontend foi refinado para computador e celular com maior contraste, novos estados de foco, cartões e categoria com mais destaque, seção editorial para comerciantes e botão flutuante de WhatsApp.
+
+- **WhatsApp de atendimento:** `+55 (51) 99995-3049`, aberto por links `https://wa.me/5551999953049`.
+- **Indique seu comércio:** botões no cabeçalho, menu mobile, rodapé e seção especial abrem `#businessDialog` (diálogo nativo).
+- **Dados coletados no formulário:** nome, categoria, endereço, contato, rede social, telefone e descrição. Os campos obrigatórios são validados no navegador.
+- **Fluxo de envio:** o botão abre o WhatsApp com uma mensagem preenchida. A pessoa precisa confirmar o envio no WhatsApp. O formulário **não** grava pedidos automaticamente no Supabase e **não** publica estabelecimento sem revisão editorial.
+- **Privacidade:** sem cadastro público no Supabase; as informações preenchidas são processadas apenas no navegador até o usuário decidir enviar a mensagem pelo WhatsApp.
+- **Manutenção do contato:** atualizar o telefone nos links de `index.html` e na constante `CONTACT_WHATSAPP` de `assets/app.js`, e executar `node --test tests/security.test.mjs`.
