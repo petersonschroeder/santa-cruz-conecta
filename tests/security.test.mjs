@@ -7,7 +7,7 @@ import { Script } from 'node:vm';
 const read=path=>readFileSync(new URL('../'+path, import.meta.url),'utf8');
 
 test('scripts públicos são JavaScript válido',()=>{
-  for(const path of ['assets/data.js','assets/supabase-config.js','assets/supabase-loader.js','assets/app.js','admin/admin.js']) {
+  for(const path of ['assets/data.js','assets/supabase-config.js','assets/supabase-loader.js','assets/app.js','assets/download.js','admin/admin.js']) {
     assert.doesNotThrow(()=>new Script(read(path),{filename:path}),path);
   }
 });
@@ -174,4 +174,51 @@ test('curadoria de novas lojas é versionada e auditoria semanal não tem creden
   assert.match(workflow,/schedule:/);
   assert.match(workflow,/contents: read/);
   assert.match(ignore,/\/scripts\//);
+});
+
+
+test('versão Android beta está empacotada com permissões mínimas',()=>{
+  const manifest=read('android/app/src/main/AndroidManifest.xml');
+  const main=read('android/app/src/main/java/br/com/santacruzconecta/app/MainActivity.java');
+  const gradle=read('android/app/build.gradle');
+  const workflow=read('.github/workflows/android-apk.yml');
+  assert.match(manifest,/android.permission.INTERNET/);
+  assert.match(manifest,/usesCleartextTraffic="false"/);
+  assert.match(manifest,/android:allowBackup="false"/);
+  assert.doesNotMatch(manifest,/android.permission.(CAMERA|READ_CONTACTS|ACCESS_FINE_LOCATION)/);
+  assert.match(main,/SslErrorHandler handler/);
+  assert.match(main,/handler.cancel\(\)/);
+  assert.match(main,/MIXED_CONTENT_NEVER_ALLOW/);
+  assert.match(main,/shouldOverrideUrlLoading/);
+  assert.match(gradle,/targetSdk 35/);
+  assert.match(gradle,/minSdk 26/);
+  assert.match(workflow,/assembleDebug/);
+  assert.match(workflow,/gh release create android-v1.0.0-beta.1/);
+});
+
+test('contadores de APK separam requests do site de downloads no GitHub',()=>{
+  const apppage=read('baixar-app.html');
+  const tracker=read('assets/download.js');
+  const panel=read('admin/index.html');
+  const admin=read('admin/admin.js');
+  const csp=read('_headers');
+  const migration=read('supabase/migrations/20261116050000_android_download_intents_metrics.sql');
+  assert.match(apppage,/id="downloadApk"/);
+  assert.match(apppage,/SantaCruzConecta-beta.apk/);
+  assert.match(apppage,/aplicativo Android/i);
+  assert.match(tracker,/android_download_events/);
+  assert.match(tracker,/keepalive:true/);
+  assert.match(panel,/appReleaseDownloads/);
+  assert.match(panel,/appDownloadsTotal/);
+  assert.match(admin,/android_download_summary/);
+  assert.match(admin,/https:\/\/api.github.com\/repos\//);
+  assert.match(admin,/download_count/);
+  assert.match(csp,/https:\/\/api.github.com/);
+  assert.match(migration,/row level security/i);
+  assert.match(migration,/grant insert\(app_version,source\) on public.android_download_events to anon/i);
+  assert.doesNotMatch(migration,/grant select on public.android_download_events to anon/i);
+  assert.match(read('supabase/migrations/20261116051000_android_download_events_guard.sql'),/guard_android_download_event/);
+  assert.match(read('privacidade.html'),/Download do aplicativo Android/);
+  assert.match(read('index.html'),/href="\/baixar-app.html"/);
+  assert.match(read('.assetsignore'),/\/android\//);
 });
