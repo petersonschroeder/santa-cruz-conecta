@@ -65,3 +65,25 @@ Depois revogue também as sessões na interface Authentication, quando disponív
 Foram analisados código-fonte, grants/RLS, configuração do deploy e checks automatizados. Isso **não é um pentest completo**: não houve varredura ativa do endpoint público com scanner DAST, pentest autenticado no navegador com uma conta admin real, checagem de vulnerabilidades de todos os domínios externos, nem comprovação dos cabeçalhos finais em todos os pontos da rede Cloudflare. Revalide após atualizar os deploys.
 
 Referências: [Supabase Production Checklist](https://supabase.com/docs/guides/security/production-checklist), [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security) e [Cloudflare Workers Headers](https://developers.cloudflare.com/workers/static-assets/headers/).
+
+
+## Entrada pública de solicitações (novembro/2026)
+
+- Tabela `public.business_submissions`: `RLS ENABLED`. O papel `anon` recebe somente `INSERT` nas colunas de formulário, sem `SELECT`, `UPDATE` ou `DELETE`.
+- Usuários autenticados que **não** estão em `admin_users` não podem visualizar os pedidos. Somente administradores podem listar e moderar.
+- Aprovação acontece pelo RPC **SECURITY INVOKER** `public.approve_business_submission`, sem uso de `service_role`; valida vínculo com `admin_users`, exige pedido pendente e publica o novo estabelecimento na mesma transação.
+- Trigger de inserção bloqueia mais de três indicações por e-mail em 24 horas, e índice único evita pedidos pendentes duplicados do mesmo e-mail para o mesmo comércio. Isso não é uma defesa completa contra bots que usam vários e-mails.
+- Página `/privacidade.html` descreve os dados, as finalidades e o contato para acesso/correção/exclusão. A equipe deve revisar e eliminar dados que não precisem mais permanecer.
+- **Antes de ampliar o tráfego**, configurar Cloudflare Turnstile com validação **server-side**, regras de rate limiting no WAF e monitoramento de abuso. Não considerar uma validação somente client-side como proteção eficaz.
+- Nunca incluir e-mail/nome do solicitante no catálogo público. O formulário indica o telefone como sendo do comércio, sujeito a revisão pelo administrador.
+
+### Verificação funcional sugerida
+
+1. Enviar uma indicação teste pelo site.
+2. Confirmar que a linha está em `business_submissions` com `status='pending'` e que **não** aparece em `places`.
+3. Fazer login com um administrador cadastrado e revisar a indicação.
+4. Rejeitar ou aprovar a indicação; ao aprovar, fornecer site HTTPS válido e escolher publicação.
+5. Confirmar que o status e o identificador do novo local foram preenchidos após a aprovação.
+6. Testar conta sem permissão e leitura anônima: ambas devem receber acesso negado à fila.
+7. Apagar os dados de teste.
+
