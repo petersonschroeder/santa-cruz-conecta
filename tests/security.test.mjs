@@ -267,3 +267,24 @@ test('indicador PWA preserva RLS e separação do APK',()=>{
   assert.match(js,/keepalive:true/);
   assert.match(read('.assetsignore'),/\/android\//);
 });
+
+
+test('PWA usa marca própria em vez de depender de atalho do Chrome',()=>{
+  const manifest=JSON.parse(read('manifest.webmanifest'));
+  const page=read('baixar-app.html');
+  const install=read('assets/pwa-install.js');
+  assert.equal(manifest.name,'Santa Cruz Conecta');
+  assert.equal(manifest.short_name,'Santa Cruz Conecta');
+  assert.equal(manifest.display,'standalone');
+  assert.deepEqual(manifest.display_override,['standalone']);
+  assert.equal(manifest.prefer_related_applications,false);
+  for(const purpose of ['any','maskable']){
+    for(const size of ['192x192','512x512']){
+      assert.ok(manifest.icons.some(i=>i.purpose===purpose && i.sizes===size),purpose+' '+size);
+    }
+  }
+  assert.match(page,/Instalar Santa Cruz Conecta/);
+  assert.match(page,/símbolo do Chrome/);
+  assert.match(install,/“Instalar app”/);
+  assert.match(install,/atalho com o símbolo do Chrome/);
+});
