@@ -83,7 +83,11 @@
     const filtered=matching(),visible=filtered.slice(0,state.limit);
     $('directoryGrid').innerHTML=visible.map(placeCard).join('');
     $('resultsInfo').innerHTML=window.SC_DATA_ERROR?'Catálogo temporariamente indisponível. Tente atualizar a página.':(filtered.length?`Exibindo <strong>${visible.length}</strong> de <strong>${filtered.length}</strong> ${filtered.length===1?'local':'locais'}`:'Nenhum local encontrado');
-    $('emptyState').hidden=Boolean(filtered.length);
+    const failed=Boolean(window.SC_DATA_ERROR);
+    $('emptyState').hidden=Boolean(filtered.length)&&!failed;
+    $('emptyTitle').textContent=failed?'Catálogo temporariamente indisponível':'Nenhum resultado por aqui';
+    $('emptyDescription').textContent=failed?'Não conseguimos carregar os estabelecimentos agora. Verifique sua conexão e tente novamente.':'Tente outro termo ou limpe os filtros para descobrir novos lugares.';
+    $('resetFilters').textContent=failed?'Tentar novamente':'Limpar filtros';
     $('loadMoreWrap').hidden=filtered.length<=state.limit;
     $('totalCount').textContent=`${places.length} lugares para descobrir`;
     if ($('heroPlaceCount')) $('heroPlaceCount').textContent=String(places.length);
@@ -148,16 +152,38 @@
   $('clearSearch').addEventListener('click',()=>{setSearch('');$('directoryInput').focus()});
   $('sortBy').addEventListener('change',e=>{state.sort=e.target.value;state.limit=9;render()});
   $('loadMore').addEventListener('click',()=>{state.limit+=9;render()});
-  $('resetFilters').addEventListener('click',reset);
-  $('directoryGrid').addEventListener('click',e=>{const btn=e.target.closest('[data-favorite]');if(!btn)return;const id=btn.dataset.favorite;const p=places.find(x=>x.id===id);if(!p)return;if(favorites.has(id)){favorites.delete(id);toast(`${p.name} removido dos favoritos`)}else{favorites.add(id);toast(`${p.name} salvo nos favoritos`)}storeFavs();render()});
+  $('resetFilters').addEventListener('click',()=>window.SC_DATA_ERROR?window.location.reload():reset());
+  document.addEventListener('click',event=>{
+    const btn=event.target.closest('[data-favorite]');
+    if(!btn)return;
+    const id=btn.dataset.favorite;
+    const p=places.find(item=>item.id===id);
+    if(!p)return;
+    const fromLatest=Boolean(btn.closest('#latestGrid'));
+    if(favorites.has(id)){favorites.delete(id);toast(p.name+' removido dos favoritos')}
+    else{favorites.add(id);toast(p.name+' salvo nos favoritos')}
+    storeFavs();render();renderLatest();
+    const container=$(fromLatest?'latestGrid':'directoryGrid');
+    const target=[...container.querySelectorAll('[data-favorite]')].find(item=>item.dataset.favorite===id);
+    if(target)target.focus({preventScroll:true});
+  });
   $('favoritesFilter').addEventListener('click',()=>{state.favoritesOnly=!state.favoritesOnly;state.limit=9;render()});
   $('favoritesTop').addEventListener('click',()=>{state.favoritesOnly=true;state.category='todos';state.search='';state.limit=9;$('heroInput').value='';$('directoryInput').value='';render();$('catalogo').scrollIntoView({behavior:'smooth',block:'start'});if(!favorites.size)toast('Toque no coração de um local para salvá-lo')});
   document.querySelectorAll('[data-quick]').forEach(btn=>btn.addEventListener('click',()=>selectCategory(btn.dataset.quick)));
   const menu=$('mobileNav'),menuBtn=$('menuBtn');
   menuBtn.addEventListener('click',()=>{const open=menu.hasAttribute('hidden');if(open)menu.removeAttribute('hidden');else menu.setAttribute('hidden','');menuBtn.setAttribute('aria-expanded',String(open));menuBtn.setAttribute('aria-label',open?'Fechar menu':'Abrir menu')});
-  menu.addEventListener('click',e=>{if(e.target.closest('a')){menu.setAttribute('hidden','');menuBtn.setAttribute('aria-expanded','false')}});
-  // Solicitação editorial: prepara uma mensagem em vez de permitir INSERT anônimo.
-  // Nada é enviado nem publicado sem o visitante confirmar no WhatsApp.
+  const closeMobileMenu=()=>{
+    menu.setAttribute('hidden','');
+    menuBtn.setAttribute('aria-expanded','false');
+    menuBtn.setAttribute('aria-label','Abrir menu');
+  };
+  menu.addEventListener('click',event=>{if(event.target.closest('a'))closeMobileMenu()});
+  document.addEventListener('click',event=>{
+    if(!menu.hasAttribute('hidden')&&!menu.contains(event.target)&&!menuBtn.contains(event.target))closeMobileMenu();
+  });
+  window.addEventListener('resize',()=>{if(window.innerWidth>=900)closeMobileMenu()});
+  // Solicitações são guardadas em fila privada no Supabase e revisadas antes de publicar.
+  // O WhatsApp é uma alternativa oferecida pelo próprio visitante.
   const businessDialog = $('businessDialog');
   const businessForm = $('businessForm');
   if (businessDialog && businessForm) {
@@ -175,8 +201,7 @@
     };
     document.querySelectorAll('[data-open-submission]').forEach(button=>button.addEventListener('click',()=>{
       focusBeforeDialog=document.activeElement;
-      menu.setAttribute('hidden','');
-      menuBtn.setAttribute('aria-expanded','false');
+      closeMobileMenu();
       if(!businessDialog.open) businessDialog.showModal();
       businessForm.elements.namedItem('name').focus();
     }));
@@ -274,5 +299,5 @@
       }
     });
   }
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu.hasAttribute('hidden')){menu.setAttribute('hidden','');menuBtn.setAttribute('aria-expanded','false')}if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!/input|textarea/i.test(document.activeElement?.tagName||'')){e.preventDefault();$('directoryInput').focus();$('catalogo').scrollIntoView({behavior:'smooth',block:'start'})}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu.hasAttribute('hidden')){closeMobileMenu();menuBtn.focus()}if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!/input|textarea/i.test(document.activeElement?.tagName||'')){e.preventDefault();$('directoryInput').focus();$('catalogo').scrollIntoView({behavior:'smooth',block:'start'})}});
 })();
