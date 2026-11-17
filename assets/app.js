@@ -59,14 +59,25 @@
     return filtered;
   }
   function favoriteButton(p){const pressed=favorites.has(p.id);return `<button type="button" class="bookmark" data-favorite="${escapeHtml(p.id)}" aria-pressed="${pressed}" aria-label="${pressed?'Remover '+escapeHtml(p.name)+' dos favoritos':'Salvar '+escapeHtml(p.name)+' nos favoritos'}" title="${pressed?'Remover dos favoritos':'Salvar nos favoritos'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l7.6-7.6 1.2-1.2a5.4 5.4 0 0 0 0-7.6Z"/></svg></button>`}
-  function placeCard(p){
+  function placeCard(p,showNew=false){
     const isGuide=p.linkType==='guia';
+    const phoneDigits=String(p.phone||'').replace(/\D/g,'');
+    const phone=phoneDigits.length>=10&&phoneDigits.length<=13?'<a class="phone-link" href="tel:+'+(phoneDigits.startsWith('55')?phoneDigits:'55'+phoneDigits)+'" aria-label="Ligar para '+escapeHtml(p.name)+'">Ligar ↗</a>':'';
     const map=p.address?`<a href="${escapeHtml(getMapUrl(p))}" class="map-link" target="_blank" rel="noopener noreferrer" aria-label="Ver ${escapeHtml(p.name)} no mapa">Ver no mapa ↗</a>`:'';
-    return `<article class="place-card"><div class="place-top"><img class="place-mark" src="${escapeHtml(getMark(p))}" data-fallback="${escapeHtml(getFallbackMark(p))}" alt="Ícone de ${escapeHtml(p.name)}" width="51" height="51" loading="lazy"><div class="place-name-block"><div class="place-category">${escapeHtml(categoryLabel(p.category))}</div><h3>${escapeHtml(p.name)}</h3></div>${favoriteButton(p)}</div><p class="place-description">${escapeHtml(p.description)}</p><div class="place-bottom">${p.address?`<span class="place-address" title="${escapeHtml(p.address)}">⌖ ${escapeHtml(p.address)}</span>`:`<span class="place-address">${escapeHtml(p.subtitle)}</span>`}<div class="place-actions"><a href="${escapeHtml(safeUrl(p.url))}" class="place-link" data-place-visit="${escapeHtml(p.id)}" target="_blank" rel="noopener noreferrer" aria-label="${linkTitle(p)}: ${escapeHtml(p.name)} (abre em nova guia)">${linkTitle(p)} <span aria-hidden="true">↗</span></a>${map||`<span class="place-type">${isGuide?'Guia público':'Link externo'}</span>`}</div></div></article>`;
+    return `<article class="place-card"><div class="place-top"><img class="place-mark" src="${escapeHtml(getMark(p))}" data-fallback="${escapeHtml(getFallbackMark(p))}" alt="Ícone de ${escapeHtml(p.name)}" width="51" height="51" loading="lazy"><div class="place-name-block"><div class="place-category">${escapeHtml(categoryLabel(p.category))}${showNew?'<span class="new-place-badge">NOVO</span>':''}</div><h3>${escapeHtml(p.name)}</h3></div>${favoriteButton(p)}</div><p class="place-description">${escapeHtml(p.description)}</p><div class="place-bottom">${p.address?`<span class="place-address" title="${escapeHtml(p.address)}">⌖ ${escapeHtml(p.address)}</span>`:`<span class="place-address">${escapeHtml(p.subtitle)}</span>`}<div class="place-actions"><a href="${escapeHtml(safeUrl(p.url))}" class="place-link" data-place-visit="${escapeHtml(p.id)}" target="_blank" rel="noopener noreferrer" aria-label="${linkTitle(p)}: ${escapeHtml(p.name)} (abre em nova guia)">${linkTitle(p)} <span aria-hidden="true">↗</span></a>${phone}${map||`<span class="place-type">${isGuide?'Guia público':'Link externo'}</span>`}</div></div></article>`;
   }
   function featuredCard(p){return `<a href="${escapeHtml(safeUrl(p.url))}" class="feature-card" data-place-visit="${escapeHtml(p.id)}" target="_blank" rel="noopener noreferrer" aria-label="Conhecer ${escapeHtml(p.name)} (abre em nova guia)"><div class="feature-top"><img class="place-mark" src="${escapeHtml(getMark(p))}" data-fallback="${escapeHtml(getFallbackMark(p))}" alt="" loading="lazy" width="56" height="56"><span class="feature-arrow" aria-hidden="true">↗</span></div><span class="feature-cat">${escapeHtml(categoryLabel(p.category))}</span><h3>${escapeHtml(p.name)}</h3><p>${escapeHtml(p.subtitle)}</p></a>`}
   function renderCategories(){const grid=$('categoryGrid');grid.innerHTML=Object.entries(categories).map(([id,c])=>`<button type="button" class="category-tile" data-category="${escapeHtml(id)}" aria-label="Ver ${escapeHtml(c.label)}"><span class="category-symbol" style="--tint:${escapeHtml(c.tint)}">${icon(c.icon)}</span><strong>${escapeHtml(c.label)}</strong><span>${escapeHtml(c.description)}</span></button>`).join('')}
-  function renderChips(){const counts=Object.fromEntries(Object.keys(categories).map(k=>[k,places.filter(p=>p.category===k).length]));const list=[['todos','Todos',places.length],...Object.entries(categories).map(([k,v])=>[k,v.label,counts[k]])];$('filterChips').innerHTML=list.map(([id,label,count])=>`<button type="button" class="filter-chip" data-filter="${id}" aria-pressed="${id===state.category}">${escapeHtml(label)} <span class="chip-count">${count}</span></button>`).join('')}
+  function renderChips(){
+    const grid=$('filterChips');
+    if(!grid.dataset.initialized){
+      const counts=Object.fromEntries(Object.keys(categories).map(k=>[k,places.filter(p=>p.category===k).length]));
+      const list=[['todos','Todos',places.length],...Object.entries(categories).map(([k,v])=>[k,v.label,counts[k]])];
+      grid.innerHTML=list.map(([id,label,count])=>'<button type="button" class="filter-chip" data-filter="'+escapeHtml(id)+'" aria-pressed="false">'+escapeHtml(label)+' <span class="chip-count">'+count+'</span></button>').join('');
+      grid.dataset.initialized='true';
+    }
+    grid.querySelectorAll('[data-filter]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.filter===state.category)));
+  }
   function updateBadges(){const n=favorites.size;$('favoriteCount').textContent=n;$('favoriteCount').hidden=!n;$('favoritesFilter').setAttribute('aria-pressed',String(state.favoritesOnly));$('favoritesFilter').setAttribute('aria-label',state.favoritesOnly?'Exibindo favoritos; clique para mostrar todos':'Mostrar somente favoritos');$('clearSearch').hidden=!state.search}
   function render(){
     const filtered=matching(),visible=filtered.slice(0,state.limit);
@@ -77,6 +88,13 @@
     $('totalCount').textContent=`${places.length} lugares para descobrir`;
     if ($('heroPlaceCount')) $('heroPlaceCount').textContent=String(places.length);
     renderChips();updateBadges();
+  }
+  function renderLatest(){
+    const grid=$('latestGrid');
+    if(!grid)return;
+    const recent=[...places].sort((a,b)=>(Date.parse(b.createdAt||0)||0)-(Date.parse(a.createdAt||0)||0)||a.name.localeCompare(b.name,locale)).slice(0,6);
+    grid.innerHTML=recent.map(p=>placeCard(p,true)).join('');
+    grid.closest('.latest-section').hidden=recent.length===0;
   }
   let toastTimer;
   function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('visible'),2500)}
@@ -94,6 +112,7 @@
   }, true);
   renderCategories();
   $('featuredGrid').innerHTML=places.filter(p=>p.featured).slice(0,6).map(featuredCard).join('');
+  renderLatest();
 
   // Mede somente cliques nos links externos, sem identificar visitantes.
   // Deduplicação local de 10 minutos reduz contagens acidentais, não é proteção antibot.
