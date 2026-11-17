@@ -85,8 +85,8 @@
     $('resultsInfo').innerHTML=window.SC_DATA_ERROR?'Catálogo temporariamente indisponível. Tente atualizar a página.':(filtered.length?`Exibindo <strong>${visible.length}</strong> de <strong>${filtered.length}</strong> ${filtered.length===1?'local':'locais'}`:'Nenhum local encontrado');
     const failed=Boolean(window.SC_DATA_ERROR);
     $('emptyState').hidden=Boolean(filtered.length)&&!failed;
-    $('emptyTitle').textContent=failed?'Catálogo temporariamente indisponível':'Nenhum resultado por aqui';
-    $('emptyDescription').textContent=failed?'Não conseguimos carregar os estabelecimentos agora. Verifique sua conexão e tente novamente.':'Tente outro termo ou limpe os filtros para descobrir novos lugares.';
+    $('emptyTitle').textContent=failed?'Catálogo temporariamente indisponível':state.favoritesOnly&&favorites.size===0?'Você ainda não tem favoritos':'Nenhum resultado por aqui';
+    $('emptyDescription').textContent=failed?'Não conseguimos carregar os estabelecimentos agora. Verifique sua conexão e tente novamente.':state.favoritesOnly&&favorites.size===0?'Toque no coração dos locais de que você gosta para encontrá-los rapidamente aqui.':'Tente outro termo ou limpe os filtros para descobrir novos lugares.';
     $('resetFilters').textContent=failed?'Tentar novamente':'Limpar filtros';
     $('loadMoreWrap').hidden=filtered.length<=state.limit;
     $('totalCount').textContent=`${places.length} lugares para descobrir`;
@@ -151,7 +151,7 @@
   $('directoryInput').addEventListener('input',e=>setSearch(e.target.value));
   $('clearSearch').addEventListener('click',()=>{setSearch('');$('directoryInput').focus()});
   $('sortBy').addEventListener('change',e=>{state.sort=e.target.value;state.limit=9;render()});
-  $('latestExplore').addEventListener('click',()=>{state.sort='recent';state.limit=9;$('sortBy').value='recent';render()});
+  $('latestExplore').addEventListener('click',()=>{state.category='todos';state.search='';state.favoritesOnly=false;state.sort='recent';state.limit=9;$('sortBy').value='recent';$('heroInput').value='';$('directoryInput').value='';render()});
   $('loadMore').addEventListener('click',()=>{state.limit+=9;render()});
   $('resetFilters').addEventListener('click',()=>window.SC_DATA_ERROR?window.location.reload():reset());
   document.addEventListener('click',event=>{
@@ -182,7 +182,7 @@
   document.addEventListener('click',event=>{
     if(!menu.hasAttribute('hidden')&&!menu.contains(event.target)&&!menuBtn.contains(event.target))closeMobileMenu();
   });
-  window.addEventListener('resize',()=>{if(window.innerWidth>=900)closeMobileMenu()});
+  window.addEventListener('resize',()=>{if(window.innerWidth>800)closeMobileMenu()});
   // Solicitações são guardadas em fila privada no Supabase e revisadas antes de publicar.
   // O WhatsApp é uma alternativa oferecida pelo próprio visitante.
   const businessDialog = $('businessDialog');
