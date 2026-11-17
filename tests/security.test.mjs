@@ -288,3 +288,46 @@ test('PWA usa marca própria em vez de depender de atalho do Chrome',()=>{
   assert.match(install,/“Instalar app”/);
   assert.match(install,/atalho com o símbolo do Chrome/);
 });
+
+
+test('revisão do front adiciona novidades, navegação rápida e estados de rede úteis',()=>{
+  const html=read('index.html'),app=read('assets/app.js'),loader=read('assets/supabase-loader.js'),css=read('assets/styles.css');
+  assert.match(html,/id="latestGrid"/);
+  assert.match(html,/id="latestExplore"/);
+  assert.match(html,/value="recent"/);
+  assert.match(html,/data-quick="comercio"/);
+  assert.match(html,/id="emptyTitle"/);
+  assert.match(html,/id="emptyDescription"/);
+  assert.match(app,/function renderLatest\(\)/);
+  assert.match(app,/recent\.map\(p=>placeCard\(p,true\)\)/);
+  assert.match(app,/visible\.map\(p=>placeCard\(p\)\)/);
+  assert.doesNotMatch(app,/visible\.map\(placeCard\)/);
+  assert.match(app,/latestExplore'\)\.addEventListener/);
+  assert.match(app,/createdAt/);
+  assert.match(loader,/createdAt:\s*p\.created_at/);
+  assert.match(loader,/select=id,name,category,description/);
+  assert.match(app,/Catálogo temporariamente indisponível/);
+  assert.match(css,/\.latest-grid\{/);
+  assert.match(css,/@media\(max-width:365px\)/);
+});
+test('cards têm fallback próprio, telefone e foco acessível em favoritos',()=>{
+  const app=read('assets/app.js'),admin=read('admin/admin.js');
+  assert.match(app,/data:image\/svg\+xml;charset=UTF-8/);
+  assert.match(app,/class="phone-link"/);
+  assert.match(app,/href="tel:\+/);
+  assert.match(app,/function closeMobileMenu/);
+  assert.match(app,/focus\(\{preventScroll:true\}\)/);
+  assert.match(admin,/function monogramFor/);
+  assert.match(admin,/data-fallback="'\+esc\(monogramFor\(p\.name\)\)/);
+  assert.doesNotMatch(app,/Ver guia oficial/);
+});
+test('novos estabelecimentos curados têm origem, categorias e inserção idempotente',()=>{
+  const seed=read('supabase/seeds/20261117_novos_estabelecimentos.sql');
+  for(const id of ['caes-e-gatos-vet','casa-nova-materiais','redemac-hs','thome-materiais','wazlawik-pet-agro','bicho-chique-veterinaria','casa-tua-santa-cruz','padaria-pritsch','sir-tecnologia','casa-do-papel-scs','gepel-papelaria','iluminura-livraria-cafe']){
+    assert.ok(seed.includes("'"+id+"'"),id+' deve constar no seed de pesquisa');
+  }
+  assert.match(seed,/on conflict \(id\) do nothing/i);
+  assert.match(seed,/source_url/);
+  assert.match(seed,/last_link_reviewed_at/);
+  assert.doesNotMatch(seed,/sb_secret_|service_role/);
+});
