@@ -25,12 +25,17 @@
   function icon(name){return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconPaths[name] || iconPaths.compass}</svg>`}
   const escapeHtml = (val) => String(val??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const normalize = (s) => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-  const safeUrl = (val) => /^https:\/\//i.test(val||'') ? val : '#';
+  const safeUrl = (val) => {try{const url=new URL(String(val||''));return url.protocol==='https:'&&url.hostname.includes('.')?url.href:'#'}catch{return '#'}};
   function readFavs(){try{const data=JSON.parse(localStorage.getItem(FAVORITES_KEY)||'[]');return new Set(Array.isArray(data)?data.filter(x=>typeof x==='string'):[])}catch{return new Set()}}
-  let favorites = readFavs();
+  let favorites = new Set([...readFavs()].filter(id=>places.some(p=>p.id===id)));
   function storeFavs(){try{localStorage.setItem(FAVORITES_KEY,JSON.stringify([...favorites]))}catch{/* Navegação privada: sessão atual ainda funciona */}}
   const categoryLabel = id => categories[id]?.label || 'Outros';
-  function getFallbackMark(place){return `assets/brands/${encodeURIComponent(place.id)}.svg`}
+  function getFallbackMark(place){
+    // Monograma próprio: evita imagens quebradas quando um estabelecimento não tem logotipo.
+    const letters=String(place.name||'SC').trim().split(/\s+/).filter(Boolean).slice(0,2).map(word=>word[0].toUpperCase()).join('').slice(0,2)||'SC';
+    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" rx="27" fill="#d9f3bb"/><circle cx="96" cy="25" r="15" fill="#b8df8c"/><text x="60" y="75" fill="#1d503b" font-family="Arial,sans-serif" font-size="42" font-weight="800" text-anchor="middle">'+escapeHtml(letters)+'</text></svg>';
+    return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+  }
   function getMark(place){
     if(/^https:\/\//i.test(place.logoUrl||'')) return place.logoUrl;
     if(place.linkType==='site' && /^https:\/\//i.test(place.url||'')){
@@ -38,7 +43,7 @@
     }
     return getFallbackMark(place);
   }
-  function linkTitle(place){return place.linkType==='guia'?'Ver guia oficial':place.linkType==='canais'?'Ver canais oficiais':place.id==='passagens'?'Consultar passagens':'Visitar site'}
+  function linkTitle(place){return place.linkType==='guia'?'Consultar guia':place.linkType==='canais'?'Ver canais':place.id==='passagens'?'Consultar passagens':'Visitar site'}
   function getMapUrl(place){return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([place.name,place.address,'Santa Cruz do Sul, RS, Brasil'].filter(Boolean).join(', '))}`}
   function matching(){
     const terms=normalize(state.search).split(/\s+/).filter(Boolean);
@@ -48,6 +53,7 @@
       if(terms.length){const hay=normalize([p.name,p.description,p.subtitle,p.address,p.category,categoryLabel(p.category),...(p.tags||[])].join(' '));if(!terms.every(t=>hay.includes(t)))return false}
       return true;
     });
+    if(state.sort==='recent')filtered.sort((a,b)=>Date.parse(b.createdAt||0)-Date.parse(a.createdAt||0)||a.name.localeCompare(b.name,locale));
     if(state.sort==='name')filtered.sort((a,b)=>a.name.localeCompare(b.name,locale));
     if(state.sort==='category')filtered.sort((a,b)=>categoryLabel(a.category).localeCompare(categoryLabel(b.category),locale)||a.name.localeCompare(b.name,locale));
     return filtered;
