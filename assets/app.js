@@ -81,7 +81,7 @@
   function updateBadges(){const n=favorites.size;$('favoriteCount').textContent=n;$('favoriteCount').hidden=!n;$('favoritesFilter').setAttribute('aria-pressed',String(state.favoritesOnly));$('favoritesFilter').setAttribute('aria-label',state.favoritesOnly?'Exibindo favoritos; clique para mostrar todos':'Mostrar somente favoritos');$('clearSearch').hidden=!state.search}
   function render(){
     const filtered=matching(),visible=filtered.slice(0,state.limit);
-    $('directoryGrid').innerHTML=visible.map(placeCard).join('');
+    $('directoryGrid').innerHTML=visible.map(p=>placeCard(p)).join('');
     $('resultsInfo').innerHTML=window.SC_DATA_ERROR?'Catálogo temporariamente indisponível. Tente atualizar a página.':(filtered.length?`Exibindo <strong>${visible.length}</strong> de <strong>${filtered.length}</strong> ${filtered.length===1?'local':'locais'}`:'Nenhum local encontrado');
     const failed=Boolean(window.SC_DATA_ERROR);
     $('emptyState').hidden=Boolean(filtered.length)&&!failed;
@@ -151,6 +151,7 @@
   $('directoryInput').addEventListener('input',e=>setSearch(e.target.value));
   $('clearSearch').addEventListener('click',()=>{setSearch('');$('directoryInput').focus()});
   $('sortBy').addEventListener('change',e=>{state.sort=e.target.value;state.limit=9;render()});
+  $('latestExplore').addEventListener('click',()=>{state.sort='recent';state.limit=9;$('sortBy').value='recent';render()});
   $('loadMore').addEventListener('click',()=>{state.limit+=9;render()});
   $('resetFilters').addEventListener('click',()=>window.SC_DATA_ERROR?window.location.reload():reset());
   document.addEventListener('click',event=>{
