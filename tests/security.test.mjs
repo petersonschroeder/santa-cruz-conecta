@@ -315,7 +315,7 @@ test('cards têm fallback próprio, telefone e foco acessível em favoritos',()=
   assert.match(app,/data:image\/svg\+xml;charset=UTF-8/);
   assert.match(app,/class="phone-link"/);
   assert.match(app,/href="tel:\+/);
-  assert.match(app,/function closeMobileMenu/);
+  assert.match(app,/const closeMobileMenu\s*=/);
   assert.match(app,/focus\(\{preventScroll:true\}\)/);
   assert.match(admin,/function monogramFor/);
   assert.match(admin,/data-fallback="'\+esc\(monogramFor\(p\.name\)\)/);
