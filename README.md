@@ -22,7 +22,7 @@ Supabase Storage    ─ bucket brand-logos
 Supabase Auth       ─ contas autorizadas
 ```
 
-A tabela `places` contém 37 estabelecimentos iniciais publicados. O catálogo público é carregado **diretamente do Supabase**, sem uma cópia estática de registros removidos. Caso o banco não responda, o portal informa indisponibilidade do catálogo em vez de reexibir locais despublicados.
+A tabela `places` partiu de 37 estabelecimentos iniciais e foi ampliada para 64 locais publicados em 17/11/2026, incluindo novos comércios pesquisados e verificados. O catálogo público é carregado **diretamente do Supabase**, sem uma cópia estática de registros removidos. Caso o banco não responda, o portal informa indisponibilidade do catálogo em vez de reexibir locais despublicados.
 
 - **Visitante:** consulta somente estabelecimentos publicados, com links HTTPS.
 - **Usuário autenticado comum:** também só consulta publicados.
@@ -181,7 +181,7 @@ Novas versões devem publicar um novo tag/asset no GitHub Releases com a assinat
 
 A página [baixar-app.html](https://santa-cruz-conecta.pepirocha123.workers.dev/baixar-app.html) prioriza a **instalação pelo Chrome Android**, via Web App Manifest e service worker, sem baixar APK de fonte desconhecida. O APK de depuração permanece como opção separada e identificada para testes — ele pode continuar mostrando alertas de instalação.
 
-PWA tem ícone próprio, tela inicial e comportamento semelhante a aplicativo, mas necessita de internet. O `sw.js` guarda somente a página de indisponibilidade e um ícone; não armazena catálogo, tokens, informações pessoais nem dados do administrador. A instalação pode ser oferecida pelo botão ou por **Chrome → ⋮ → Instalar app / Adicionar à tela inicial**, dependendo da versão do navegador.
+PWA tem ícone próprio, tela inicial e comportamento semelhante a aplicativo, mas necessita de internet. O `sw.js` guarda somente a página de indisponibilidade e um ícone; não armazena catálogo, tokens, informações pessoais nem dados do administrador. A instalação pode ser oferecida pelo botão ou por **Chrome → ⋮ → Instalar app** (quando disponível; “Adicionar à tela inicial” pode criar apenas um atalho com o logotipo do Chrome), dependendo da versão do navegador.
 
 Não existe forma legítima de garantir que um APK externo nunca será marcado pelo Play Protect. Para distribuição de um APK/AAB com menor atrito, preparar versão Release assinada de forma permanente e enviá-la para revisão da Google Play. Se ocorrer alerta de classificação incorreta, seguir o procedimento de revisão do Play Protect junto ao Google.
 
@@ -191,3 +191,20 @@ Não existe forma legítima de garantir que um APK externo nunca será marcado p
 A instalação pelo Chrome dispara o evento `appinstalled` em navegadores compatíveis. Nesse caso, `assets/pwa-install.js` envia apenas a categoria de plataforma (`android` ou `desktop`) à tabela `pwa_install_events`, sem dados pessoais. O painel `/admin/` exibe totais e períodos pela visão `pwa_install_summary`. Essa é uma **estimativa**, não uma contagem garantida de instalações: ações manuais de “Adicionar à tela inicial” podem não emitir o evento. A tabela possui RLS e um limite contra volumes excessivos.
 
 Documentação da migração: `supabase/migrations/20261116053000_pwa_browser_install_metrics.sql`. Os downloads do APK do GitHub são registrados separadamente dos eventos de instalação PWA. Não classifique um clique, instalação PWA, download de APK e instalação de APK como equivalentes.
+
+
+## Revisão do front-end e expansão do catálogo — 17/11/2026
+
+A homepage mantém HTML, CSS e JS sem framework e agora oferece:
+- **Novidades da cidade**: últimos seis cadastros reais publicados no Supabase, ordenados por `created_at`; clique em **Explorar todos** para ordenar o catálogo pelos mais recentes.
+- **Busca e filtros**: atalhos rápidos para lojas, farmácias, restaurantes, cafés e turismo; nova ordenação **Mais recentes**; filtros com estado acessível mantido sem recriar todos os botões a cada digitação.
+- **Cards**: link de site, **Ligar** (somente quando há número válido), **Ver no mapa** quando existe endereço e monograma SVG original quando o estabelecimento ainda não tem logotipo. Favoritos restauram foco após a mudança visual.
+- **Estados de erro**: se o Supabase estiver indisponível, o catálogo exibe explicação e botão **Tentar novamente**, sem retornar a dados de empresas retiradas do banco.
+- **Dispositivos móveis**: navegação ajustada, painel de categorias rolável e novos cards responsivos. Preferência por movimento reduzido preservada.
+- **Painel administrativo**: fallback de monograma para os novos estabelecimentos, evitando requisições de imagens locais inexistentes.
+- **Performance**: o carregador Supabase busca somente colunas utilizadas pelo front, mantendo o filtro `is_published=eq.true` e `cache: no-store`.
+
+Foram cadastrados mais **12 estabelecimentos** localizados em Santa Cruz do Sul, nos setores de informática, materiais de construção, móveis, papelarias, pets e cafés. Os dados foram pesquisados em páginas oficiais e fontes públicas, incluindo telefone e endereço somente quando sustentados. O SQL idempotente e as URLs de referência estão em `supabase/seeds/20261117_novos_estabelecimentos.sql`.
+
+**Validação**: `node --test tests/security.test.mjs` e auditoria HTTP de links no GitHub Actions. Respostas HTTP 403/429 podem ser proteção contra robôs e não comprovam que um negócio fechou. **A publicação na Cloudflare depende da integração de deploy**; alterações no banco têm efeito imediato onde a API estiver acessível.
+
