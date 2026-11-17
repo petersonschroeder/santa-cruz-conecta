@@ -13,12 +13,17 @@ const loadStored = () => { try { return JSON.parse(sessionStorage.getItem(SESSIO
 const saveSession = value => { session = value; if (value) sessionStorage.setItem(SESSION_KEY, JSON.stringify(value)); else sessionStorage.removeItem(SESSION_KEY); };
 const message = (id,text,error=false) => { const el=$(id); el.textContent=text; el.classList.toggle('error',!!error); };
 const validHttps = text => { try { const u=new URL(text); return u.protocol==='https:' && !!u.hostname; } catch { return false; } };
+function monogramFor(name){
+  const initials=String(name||'SC').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('').slice(0,2)||'SC';
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" rx="27" fill="#d9f3bb"/><text x="60" y="76" font-family="Arial,sans-serif" font-size="42" font-weight="800" fill="#174735" text-anchor="middle">'+esc(initials)+'</text></svg>';
+  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+}
 function logoFor(p) {
   if (validHttps(p.logo_url)) return p.logo_url;
   if (p.link_type === 'site' && validHttps(p.website_url)) {
     try { return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(new URL(p.website_url).hostname) + '&sz=128'; } catch {}
   }
-  return '/assets/brands/' + encodeURIComponent(p.id) + '.svg';
+  return monogramFor(p.name);
 }
 function fail(response, json) {
   let detail = json?.msg || json?.error_description || json?.message || json?.details || json?.hint || json?.error || 'Erro de comunicação';
@@ -326,7 +331,7 @@ function render() {
     const reviewLabel={pending:'Pendente',reviewed:'Conferido',needs_review:'Revisar'}[reviewStatus]||reviewStatus;
     const url=validHttps(p.website_url)?p.website_url:'#';
     return '<tr>'+
-      '<td><div class="item"><img src="'+esc(logoFor(p))+'" data-fallback="/assets/brands/'+encodeURIComponent(p.id)+'.svg" alt="" loading="lazy"><span><strong>'+esc(p.name)+'</strong><span class="muted">'+esc(p.address||p.id)+'</span></span></div></td>'+
+      '<td><div class="item"><img src="'+esc(logoFor(p))+'" data-fallback="'+esc(monogramFor(p.name))+'" alt="" loading="lazy"><span><strong>'+esc(p.name)+'</strong><span class="muted">'+esc(p.address||p.id)+'</span></span></div></td>'+
       '<td>'+esc(cats[p.category]?.label||p.category)+'</td>'+
       '<td><span class="status '+(p.is_published?'live':'')+'">'+(p.is_published?'Publicado':'Rascunho')+'</span></td>'+
       '<td><a class="admin-site-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(p.link_type==='site'?'Site oficial':p.link_type==='guia'?'Guia externo':'Canal externo')+' ↗</a></td>'+
