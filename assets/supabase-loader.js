@@ -11,7 +11,7 @@ window.SC_DATA_READY = (async () => {
     const timeout = setTimeout(() => controller.abort(), 6500);
     let response;
     try {
-      response = await fetch(`${url}/rest/v1/places?select=*&is_published=eq.true&order=name.asc&limit=1000`, {
+      response = await fetch(`${url}/rest/v1/places?select=id,name,category,description,logo_url,website_url,link_type,featured,subtitle,address,phone,tags,mark,palette,source_url,created_at,updated_at&is_published=eq.true&order=name.asc&limit=1000`, {
         headers: { apikey: key },
         signal: controller.signal,
         cache: 'no-store'
@@ -28,7 +28,8 @@ window.SC_DATA_READY = (async () => {
         url: p.website_url, linkType: p.link_type || 'site', featured: !!p.featured,
         subtitle: p.subtitle || '', address: p.address || '', phone: p.phone || '',
         tags: Array.isArray(p.tags) ? p.tags : [], mark: p.mark || '',
-        palette: p.palette || null, source: p.source_url || ''
+        palette: p.palette || null, source: p.source_url || '',
+        createdAt: p.created_at || null, updatedAt: p.updated_at || null
       }));
     window.SC_PLACES = places;
     window.SC_SUPABASE_LOADED = true;
