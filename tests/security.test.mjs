@@ -331,3 +331,22 @@ test('novos estabelecimentos curados têm origem, categorias e inserção idempo
   assert.match(seed,/last_link_reviewed_at/);
   assert.doesNotMatch(seed,/sb_secret_|service_role/);
 });
+
+
+test('catálogo público consulta somente colunas existentes na tabela places',()=>{
+  const loader=read('assets/supabase-loader.js');
+  const sql=read('supabase/migrations/20261116010000_admin_dashboard_and_brand_logos.sql');
+  const select=loader.match(/\/rest\/v1\/places\?select=([^&\x60]+)&is_published=eq\.true/);
+  assert.ok(select,'consulta pública deve selecionar colunas e filtrar publicados');
+  const columns=select[1].split(',');
+  const valid=new Set([
+    'id','name','category','description','website_url','link_type','featured',
+    'subtitle','address','phone','tags','mark','source_url','is_published',
+    'created_at','updated_at','logo_url','link_review_status','last_link_reviewed_at'
+  ]);
+  for(const col of columns)assert.ok(valid.has(col),'coluna inexistente no banco: '+col);
+  assert.ok(!columns.includes('palette'),'evitar erro PGRST200/42703: palette não existe');
+  assert.match(loader,/if \(!response\.ok\) \{/);
+  assert.match(loader,/SC_DATA_ERROR = true/);
+  assert.match(sql,/alter table public\.places/);
+});
